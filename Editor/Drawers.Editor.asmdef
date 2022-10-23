@@ -1,0 +1,16 @@
+{
+    "name": "SeweralIdeas.Drawers.Editor",
+    "rootNamespace": "SeweralIdeas.Drawers.Editor",
+    "references": [
+        "GUID:cf5a3647f2623f044943c7d12af0b6c4"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

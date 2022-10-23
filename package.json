@@ -1,0 +1,11 @@
+{
+  "name": "com.seweralideas.drawers",
+  "version": "0.1.0",
+  "displayName": "Common Drawers",
+  "description": "Common PropertyDrawers for Unity",
+  "author":
+  {
+    "name": "Boleslav Horak",
+    "email": "seweralideas@gmail.com"
+  }
+}
