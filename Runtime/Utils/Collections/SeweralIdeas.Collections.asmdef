@@ -1,0 +1,14 @@
+{
+    "name": "SeweralIdeas.Collections",
+    "rootNamespace": "SeweralIdeas.Collections",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
