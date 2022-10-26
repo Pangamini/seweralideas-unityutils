@@ -1,4 +1,9 @@
-﻿using System;
+﻿#if UNITY_5_3_OR_NEWER
+#define UNITY
+#endif
+
+using System;
+using System.Collections.Generic;
 using SeweralIdeas.Pooling;
 
 namespace SeweralIdeas.Utils
@@ -121,25 +126,25 @@ namespace SeweralIdeas.Utils
             return result;
         }
 
-        // public static T PickRandom<T>(T[] data)
-        // {
-        //     var index = UnityEngine.Random.Range(0, data.Length);
-        //     return data[index];
-        // }
-        //
-        //
-        //
-        // public static void GetRandomOrder(int count, List<(int index, int randomValue)> shuffle)
-        // {
-        //     shuffle.Clear();
-        //     shuffle.Capacity = count;
-        //     for (int i = 0; i < count; ++i)
-        //     {
-        //         shuffle.Add((i, UnityEngine.Random.Range(int.MinValue, int.MaxValue)));
-        //     }
-        //
-        //     Comparison<(int i, int r)> comparison = ((int i, int r) lhs, (int i, int r) rhs) => lhs.r.CompareTo(rhs.r);
-        //     shuffle.Sort(comparison);
-        // }
+#if UNITY
+        public static T PickRandom<T>(T[] data)
+        {
+            var index = UnityEngine.Random.Range(0, data.Length);
+            return data[index];
+        }
+        
+        public static void GetRandomOrder(int count, List<(int index, int randomValue)> shuffle)
+        {
+            shuffle.Clear();
+            shuffle.Capacity = count;
+            for (int i = 0; i < count; ++i)
+            {
+                shuffle.Add((i, UnityEngine.Random.Range(int.MinValue, int.MaxValue)));
+            }
+        
+            Comparison<(int i, int r)> comparison = ((int i, int r) lhs, (int i, int r) rhs) => lhs.r.CompareTo(rhs.r);
+            shuffle.Sort(comparison);
+        }
+#endif
     }
 }
