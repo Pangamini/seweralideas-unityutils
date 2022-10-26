@@ -2,4 +2,4 @@
 
 ## [0.1.0]
 ### Added
-- Various common usage drawers
+- Various common usage stuff
