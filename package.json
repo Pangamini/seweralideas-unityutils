@@ -7,5 +7,11 @@
   {
     "name": "Boleslav Horak",
     "email": "seweralideas@gmail.com"
+  },
+  "dependencies":
+  {
+      "com.unity.burst": "1.2.1",
+      "com.unity.mathematics": "1.2.1",
+      "com.unity.collections": "1.2.4"
   }
 }
