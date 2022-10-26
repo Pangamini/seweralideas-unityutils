@@ -1,7 +1,7 @@
 using UnityEngine;
 namespace SeweralIdeas.UnityUtils
 {
-    [CreateAssetMenu(menuName = "Framework/Cursor")]
+    [CreateAssetMenu(menuName = "SeweralIdeas/Cursor")]
     public class Cursor : ScriptableObject
     {
         [SerializeField] public Texture2D icon;
