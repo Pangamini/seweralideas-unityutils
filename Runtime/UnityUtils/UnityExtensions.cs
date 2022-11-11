@@ -68,44 +68,7 @@ namespace SeweralIdeas.UnityUtils
             var r = go.GetComponent<T>();
             return r ? r : go.AddComponent<T>();
         }
-
-        public static Vector3 x0y(this Vector2 v)
-        {
-            return new Vector3(v.x, 0, v.y);
-        }
-
-        public static Vector2 xz(this Vector3 v)
-        {
-            return new Vector2(v.x, v.z);
-        }
-
-        public static Vector3 xzy(this Vector3 v)
-        {
-            return new Vector3(v.x, v.z, v.y);
-        }
-
-        public static Vector2 xy(this Vector3 v)
-        {
-            return new Vector2(v.x, v.y);
-        }
-
-        public static Vector2 yz(this Vector3 v)
-        {
-            return new Vector2(v.y, v.z);
-        }
-
-        public static Vector3Int ToVector3Int(this Vector3 v)
-        {
-            return new Vector3Int(Mathf.RoundToInt(v.x), Mathf.RoundToInt(v.y), Mathf.RoundToInt(v.z));
-        }
-
-        public static Vector2Int ToVector2Int(this Vector2 v)
-        {
-            return new Vector2Int(Mathf.RoundToInt(v.x), Mathf.RoundToInt(v.y));
-        }
-
-
-
+        
         public static float ExplosionImpulseFalloff(float distance, float radius, ExplosionFalloff falloffMode)
         {
             switch (falloffMode)
