@@ -9,8 +9,6 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
     [CustomPropertyDrawer(typeof(CurveAttribute))]
     public class ResponseCurveDrawer : PropertyDrawer
     {
-        
-        const string LabelFormat = "N3";
         const float LeftEdgeOffset = 32f;
 
         private static GUIStyle s_funcValueStyle;
@@ -104,17 +102,17 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                                 float relativeMouseX = Mathf.InverseLerp(curveRect.xMin, curveRect.xMax, Event.current.mousePosition.x);
                                 float funcX = Mathf.Lerp(xRange.x, xRange.y, relativeMouseX);
                                 Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax), 2f);
-                                var content = new GUIContent(funcX.ToString(LabelFormat));
+                                var content = new GUIContent(funcX.ToString(curveAttribute.xFormat));
                                 float lineHeight = EditorGUIUtility.singleLineHeight;
                                 //GUI.color = Handles.color;
                                 GUI.Label(new Rect(curveRect.x, curveRect.yMax - lineHeight, curveRect.width, lineHeight), content, EditorStyles.centeredGreyMiniLabel);
                             }
 
-                            DrawMouseValues(curveRect, curves, xRange, yRange, s_curveColors);
+                            DrawMouseValues(curveRect, curves, xRange, yRange, s_curveColors, curveAttribute);
                             
                         }
 
-                        DrawLabels(curveRect, xRange, yRange);
+                        DrawLabels(curveRect, xRange, yRange, curveAttribute);
                     }
                 }
 
@@ -130,7 +128,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             }
         }
 
-        private void DrawMouseValues(Rect curveRect, IList<IRealCurve> curves, Vector2 xRange, Vector2 yRange, Color[] curveColors)
+        private void DrawMouseValues(Rect curveRect, IList<IRealCurve> curves, Vector2 xRange, Vector2 yRange, Color[] curveColors, CurveAttribute curveAttribute)
         {
             var labelStyle = FuncValueStyle();
             float labelHeight = labelStyle.CalcSize(new GUIContent(" ")).y;
@@ -154,7 +152,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 
                 // value label  
                 GUI.color = color;
-                var content = new GUIContent(funcVal.ToString(LabelFormat));
+                var content = new GUIContent(funcVal.ToString(curveAttribute.yFormat));
                 
                 var labelRect = new Rect(0, valueLabelStart + i*labelHeight, curveRect.x, labelHeight);
                 GUI.Label(labelRect, content, FuncValueStyle());
@@ -196,21 +194,21 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             }
         }
 
-        private void DrawLabels(Rect curveRect, Vector2 rangeX, Vector2 rangeY)
+        private void DrawLabels(Rect curveRect, Vector2 rangeX, Vector2 rangeY, CurveAttribute curveAttribute)
         {
 
             GUI.color = new Color(1, 0.5f, 0.5f, 0.5f);
 
             // xMin label
             {
-                var content = new GUIContent(rangeX.x.ToString(LabelFormat));
+                var content = new GUIContent(rangeX.x.ToString(curveAttribute.xFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.x, curveRect.yMax - contentSize.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
 
             // xMax label
             {
-                var content = new GUIContent(rangeX.y.ToString(LabelFormat));
+                var content = new GUIContent(rangeX.y.ToString(curveAttribute.xFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.xMax - contentSize.x, curveRect.yMax - contentSize.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
@@ -218,14 +216,14 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             GUI.color = new Color(.5f, 1, 0.5f, 0.5f);
             // yMin label
             {
-                var content = new GUIContent(rangeY.x.ToString(LabelFormat));
+                var content = new GUIContent(rangeY.x.ToString(curveAttribute.yFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.x - contentSize.x - 4, curveRect.yMax - contentSize.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
 
             // yMax label
             {
-                var content = new GUIContent(rangeY.y.ToString(LabelFormat));
+                var content = new GUIContent(rangeY.y.ToString(curveAttribute.yFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.x - contentSize.x - 4, curveRect.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
