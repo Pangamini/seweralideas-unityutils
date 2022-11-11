@@ -52,10 +52,12 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            
             var curveAttribute = (CurveAttribute)attribute;
             var foldoutRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+            
+            EditorGUI.BeginProperty(position, label, property);
             property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label);
+            EditorGUI.EndProperty();
 
             if (property.isExpanded)
             {
@@ -94,22 +96,8 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                         if (curveRect.Contains(Event.current.mousePosition))
                         {
                             HandleUtility.Repaint();
-
-                            // draw vertical mouse line
-                            {
-                                Handles.color = new Color(0, 0, 0, 0.5f);
-                                float xPos = Mathf.Clamp(Event.current.mousePosition.x, curveRect.xMin, curveRect.xMax); // - curveRect.xMin;
-                                float relativeMouseX = Mathf.InverseLerp(curveRect.xMin, curveRect.xMax, Event.current.mousePosition.x);
-                                float funcX = Mathf.Lerp(xRange.x, xRange.y, relativeMouseX);
-                                Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax), 2f);
-                                var content = new GUIContent(funcX.ToString(curveAttribute.xFormat));
-                                float lineHeight = EditorGUIUtility.singleLineHeight;
-                                //GUI.color = Handles.color;
-                                GUI.Label(new Rect(curveRect.x, curveRect.yMax - lineHeight, curveRect.width, lineHeight), content, EditorStyles.centeredGreyMiniLabel);
-                            }
-
+                            DrawVerticalMouseLine(curveRect, xRange, curveAttribute);
                             DrawMouseValues(curveRect, curves, xRange, yRange, s_curveColors, curveAttribute);
-                            
                         }
 
                         DrawLabels(curveRect, xRange, yRange, curveAttribute);
@@ -117,6 +105,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 }
 
                 float childYpos = propertiesRect.y;
+                EditorGUI.indentLevel++;
                 foreach (SerializedProperty child in property)
                 {
                     float height = EditorGUI.GetPropertyHeight(child, true);
@@ -124,8 +113,23 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                     EditorGUI.PropertyField(propertyRect, child, null, true);
                     childYpos += height;
                 }
+                EditorGUI.indentLevel--;
 
             }
+            
+        }
+
+        private static void DrawVerticalMouseLine(Rect curveRect, Vector2 xRange, CurveAttribute curveAttribute)
+        {
+            Handles.color = new Color(0, 0, 0, 0.5f);
+            float xPos = Mathf.Clamp(Event.current.mousePosition.x, curveRect.xMin, curveRect.xMax); // - curveRect.xMin;
+            float relativeMouseX = Mathf.InverseLerp(curveRect.xMin, curveRect.xMax, Event.current.mousePosition.x);
+            float funcX = Mathf.Lerp(xRange.x, xRange.y, relativeMouseX);
+            Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax), 2f);
+            var content = new GUIContent(funcX.ToString(curveAttribute.xFormat));
+            float lineHeight = EditorGUIUtility.singleLineHeight;
+            //GUI.color = Handles.color;
+            GUI.Label(new Rect(curveRect.x, curveRect.yMax - lineHeight, curveRect.width, lineHeight), content, EditorStyles.centeredGreyMiniLabel);
         }
 
         private void DrawMouseValues(Rect curveRect, IList<IRealCurve> curves, Vector2 xRange, Vector2 yRange, Color[] curveColors, CurveAttribute curveAttribute)
