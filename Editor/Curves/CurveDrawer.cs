@@ -125,7 +125,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             float xPos = Mathf.Clamp(Event.current.mousePosition.x, curveRect.xMin, curveRect.xMax); // - curveRect.xMin;
             float relativeMouseX = Mathf.InverseLerp(curveRect.xMin, curveRect.xMax, Event.current.mousePosition.x);
             float funcX = Mathf.Lerp(xRange.x, xRange.y, relativeMouseX);
-            Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax), 2f);
+            Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax));
             var content = new GUIContent(funcX.ToString(curveAttribute.xFormat));
             float lineHeight = EditorGUIUtility.singleLineHeight;
             //GUI.color = Handles.color;
@@ -152,7 +152,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 var curveColor = color;
                 curveColor.a *= 0.5f;
                 Handles.color = curveColor;
-                Handles.DrawLine(new Vector2(curveRect.xMin, yPos), new Vector2(xPos, yPos), 2f);
+                Handles.DrawLine(new Vector2(curveRect.xMin, yPos), new Vector2(xPos, yPos));
                 
                 // value label  
                 GUI.color = color;
@@ -182,7 +182,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 {
                     float zeroPos = Mathf.Lerp/*Unclamped*/(curveRect.yMax, curveRect.yMin, zeroRel);
                     Handles.color = Color.black;
-                    Handles.DrawLine(new Vector2(curveRect.xMin, zeroPos), new Vector2(curveRect.xMax, zeroPos), 2f);
+                    Handles.DrawLine(new Vector2(curveRect.xMin, zeroPos), new Vector2(curveRect.xMax, zeroPos));
                 }
             }
 
@@ -193,7 +193,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 {
                     float zeroPos = Mathf.Lerp/*Unclamped*/(curveRect.xMin, curveRect.xMax, zeroRel);
                     Handles.color = Color.black;
-                    Handles.DrawLine(new Vector2(zeroPos, curveRect.yMin), new Vector2(zeroPos, curveRect.yMax), 2f);
+                    Handles.DrawLine(new Vector2(zeroPos, curveRect.yMin), new Vector2(zeroPos, curveRect.yMax));
                 }
             }
         }
@@ -258,7 +258,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                     float curveX = Mathf.Lerp(rangeX.x, rangeX.y, x / curveWidth);
                     var nextPoint = ToPoint(x, curve.Evaluate(curveX));
 
-                    Handles.DrawLine(prevPoint, nextPoint, 3f);
+                    Handles.DrawLine(prevPoint, nextPoint);
                     prevPoint = nextPoint;
                 }
             }
