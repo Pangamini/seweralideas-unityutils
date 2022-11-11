@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SeweralIdeas.UnityUtils.Curves
 {
     [Serializable]
-    public struct SigmoidCurve : IRangedCurve
+    public struct SigmoidCurve : IRealCurve
     {
         public float mul;
         public float exp;
