@@ -62,7 +62,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             if (property.isExpanded)
             {
                 var indented = EditorGUI.IndentedRect(position);
-                var curveRect = new Rect(indented.x+LeftEdgeOffset, indented.yMax - curveAttribute.displayHeight, indented.width-LeftEdgeOffset, curveAttribute.displayHeight);
+                var curveRect = new Rect(indented.x, indented.yMax - curveAttribute.displayHeight, indented.width, curveAttribute.displayHeight);
                 var propertiesRect = new Rect(indented.x, foldoutRect.yMax, indented.width, indented.height - foldoutRect.height - curveRect.height);
 
                 if (Event.current.type == EventType.Repaint)
@@ -71,36 +71,11 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                     {
                         EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, curves);
                         var xRange = new Vector2(curveAttribute.min, curveAttribute.max);
-                        var yRange = new Vector2(float.PositiveInfinity, float.NegativeInfinity);
                         
-                        foreach (var curve in curves)
-                        {
-                            var curveRange = curve.GetValueMinMax(xRange);
-                            yRange.x = Mathf.Min(yRange.x, curveRange.x);
-                            yRange.y = Mathf.Max(yRange.y, curveRange.y);
-                        }
-
-                        // background
-                        GUI.Box(curveRect, "");
-                        // transparent "button" to ensure a mouseOver event (is there another way?)
-                        GUI.color = Color.clear;
-                        GUI.Box(curveRect, "", "Button");
-                        GUI.color = Color.white;
+                        string xFormat = curveAttribute.xFormat;
+                        string yFormat = curveAttribute.yFormat;
                         
-                        DrawGrid(curveRect, xRange, yRange);
-                        for(int i = curves.Count-1; i>=0;--i)
-                        {
-                            DrawCurve(curveRect, curves[i], xRange, yRange, s_curveColors[i % s_curveColors.Length]);
-                        }
-
-                        if (curveRect.Contains(Event.current.mousePosition))
-                        {
-                            HandleUtility.Repaint();
-                            DrawVerticalMouseLine(curveRect, xRange, curveAttribute);
-                            DrawMouseValues(curveRect, curves, xRange, yRange, s_curveColors, curveAttribute);
-                        }
-
-                        DrawLabels(curveRect, xRange, yRange, curveAttribute);
+                        CurveGUI(curveRect, curves, xRange, xFormat, yFormat);
                     }
                 }
 
@@ -114,25 +89,82 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                     childYpos += height;
                 }
                 EditorGUI.indentLevel--;
-
             }
-            
         }
 
-        private static void DrawVerticalMouseLine(Rect curveRect, Vector2 xRange, CurveAttribute curveAttribute)
+        public static Rect CurveGUI<T>(Rect position, IList<T> curves, Vector2 xRange, string xFormat = "N2", string yFormat = "N2") where T : IRealCurve
+        {
+            return CurveGUI(position, curves, xRange, GetYRange(curves, xRange), xFormat, yFormat);
+        }
+
+        public static Rect CurveGUI<T>(Rect position, IList<T> curves, IList<float> xValues, Vector2 xRange, string xFormat = "N2", string yFormat = "N2") where T : IRealCurve
+        {
+            var yRange = GetYRange(curves, xRange);
+            var curveRect = CurveGUI(position, curves, xRange, yRange, xFormat, yFormat);
+            if (!curveRect.Contains(Event.current.mousePosition))
+            {
+                DrawValues(curveRect, curves, xValues, xRange, yRange, yFormat);
+            }
+
+            return curveRect;
+        }
+
+        private static Vector2 GetYRange<T>(IList<T> curves, Vector2 xRange) where T : IRealCurve
+        {
+            var yRange = new Vector2(float.PositiveInfinity, float.NegativeInfinity);
+            
+            for (int i = 0; i < curves.Count; ++i)
+            {
+                var curveRange = curves[i].GetValueMinMax(xRange);
+                yRange.x = Mathf.Min(yRange.x, curveRange.x);
+                yRange.y = Mathf.Max(yRange.y, curveRange.y);
+            }
+
+            return yRange;
+        }
+        
+        public static Rect CurveGUI<T>(Rect position, IList<T> curves, Vector2 xRange, Vector2 yRange, string xFormat ="N2", string yFormat = "N2") where T:IRealCurve
+        {
+            Rect curvePosition = new Rect(position.x + LeftEdgeOffset, position.y, position.width - LeftEdgeOffset, position.height);
+            
+            // background
+            GUI.Box(curvePosition, "");
+            // transparent "button" to ensure a mouseOver event (is there another way?)
+            GUI.color = Color.clear;
+            GUI.Box(curvePosition, "", "Button");
+            GUI.color = Color.white;
+
+            DrawGrid(curvePosition, xRange, yRange);
+            for (int i = curves.Count - 1; i >= 0; --i)
+            {
+                DrawCurve(curvePosition, curves[i], xRange, yRange, s_curveColors[i % s_curveColors.Length]);
+            }
+
+            if (curvePosition.Contains(Event.current.mousePosition))
+            {
+                HandleUtility.Repaint();
+                DrawVerticalMouseLine(curvePosition, xRange, xFormat);
+                DrawMouseValues(curvePosition, curves, xRange, yRange, yFormat);
+            }
+
+            DrawLabels(curvePosition, xRange, yRange, xFormat, yFormat);
+            return curvePosition;
+        }
+
+        private static void DrawVerticalMouseLine(Rect curveRect, Vector2 xRange, string xLabelFormat)
         {
             Handles.color = new Color(0, 0, 0, 0.5f);
             float xPos = Mathf.Clamp(Event.current.mousePosition.x, curveRect.xMin, curveRect.xMax); // - curveRect.xMin;
             float relativeMouseX = Mathf.InverseLerp(curveRect.xMin, curveRect.xMax, Event.current.mousePosition.x);
             float funcX = Mathf.Lerp(xRange.x, xRange.y, relativeMouseX);
             Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax));
-            var content = new GUIContent(funcX.ToString(curveAttribute.xFormat));
+            var content = new GUIContent(funcX.ToString(xLabelFormat));
             float lineHeight = EditorGUIUtility.singleLineHeight;
             //GUI.color = Handles.color;
             GUI.Label(new Rect(curveRect.x, curveRect.yMax - lineHeight, curveRect.width, lineHeight), content, EditorStyles.centeredGreyMiniLabel);
         }
 
-        private void DrawMouseValues(Rect curveRect, IList<IRealCurve> curves, Vector2 xRange, Vector2 yRange, Color[] curveColors, CurveAttribute curveAttribute)
+        private static void DrawMouseValues<T>(Rect curveRect, IList<T> curves, Vector2 xRange, Vector2 yRange, string yLabelFormat) where T:IRealCurve
         {
             var labelStyle = FuncValueStyle();
             float labelHeight = labelStyle.CalcSize(new GUIContent(" ")).y;
@@ -141,7 +173,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             for (int i = 0; i < curves.Count; ++i)
             {
                 IRealCurve curve = curves[i];
-                Color color = curveColors[i % s_curveColors.Length];
+                Color color = s_curveColors[i % s_curveColors.Length];
                 
                 float relativeMouseX = Mathf.InverseLerp(curveRect.xMin, curveRect.xMax, Event.current.mousePosition.x);
                 float funcX = Mathf.Lerp(xRange.x, xRange.y, relativeMouseX);
@@ -156,13 +188,43 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 
                 // value label  
                 GUI.color = color;
-                var content = new GUIContent(funcVal.ToString(curveAttribute.yFormat));
+                var content = new GUIContent(funcVal.ToString(yLabelFormat));
                 
                 var labelRect = new Rect(0, valueLabelStart + i*labelHeight, curveRect.x, labelHeight);
                 GUI.Label(labelRect, content, FuncValueStyle());
             }
-            
+        }
 
+        private static void DrawValues<T>(Rect curveRect, IList<T> curves, IList<float> values, Vector2 xRange, Vector2 yRange, string yLabelFormat) where T:IRealCurve
+        {
+            var labelStyle = FuncValueStyle();
+            float labelHeight = labelStyle.CalcSize(new GUIContent(" ")).y;
+            float valueLabelStart = curveRect.center.y - ((curves.Count+0.5f) * labelHeight * 0.5f);
+            
+            for (int i = 0; i < curves.Count; ++i)
+            {
+                IRealCurve curve = curves[i];
+                Color color = s_curveColors[i % s_curveColors.Length];
+
+                float funcX = values[i];
+                float relX = Mathf.InverseLerp(xRange.x, xRange.y, funcX);
+                float funcVal = curve.Evaluate(funcX);
+                float xPos = Mathf.Lerp(curveRect.xMin, curveRect.xMax, relX); // - curveRect.xMin;
+                float yPos = Mathf.Lerp(curveRect.yMax, curveRect.yMin, Mathf.InverseLerp(yRange.x, yRange.y, funcVal));
+
+                var curveColor = color;
+                curveColor.a *= 0.5f;
+                Handles.color = curveColor;
+                Handles.DrawLine(new Vector2(curveRect.xMin, yPos), new Vector2(xPos, yPos));
+                Handles.DrawLine(new Vector2(xPos, curveRect.yMin), new Vector2(xPos, curveRect.yMax));
+                
+                // value label  
+                GUI.color = color;
+                var content = new GUIContent(funcVal.ToString(yLabelFormat));
+                
+                var labelRect = new Rect(0, valueLabelStart + i*labelHeight, curveRect.x, labelHeight);
+                GUI.Label(labelRect, content, FuncValueStyle());
+            }
         }
 
         private static float InverseLerpUnclamped(float a, float b, float value)
@@ -173,7 +235,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 return 0.0f;
         }
 
-        private void DrawGrid(Rect curveRect, Vector2 rangeX, Vector2 rangeY)
+        private static void DrawGrid(Rect curveRect, Vector2 rangeX, Vector2 rangeY)
         {
             // horizontal zero
             {
@@ -198,21 +260,21 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             }
         }
 
-        private void DrawLabels(Rect curveRect, Vector2 rangeX, Vector2 rangeY, CurveAttribute curveAttribute)
+        private static void DrawLabels(Rect curveRect, Vector2 rangeX, Vector2 rangeY, string xLabelFormat, string yLabelFormat)
         {
 
             GUI.color = new Color(1, 0.5f, 0.5f, 0.5f);
 
             // xMin label
             {
-                var content = new GUIContent(rangeX.x.ToString(curveAttribute.xFormat));
+                var content = new GUIContent(rangeX.x.ToString(xLabelFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.x, curveRect.yMax - contentSize.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
 
             // xMax label
             {
-                var content = new GUIContent(rangeX.y.ToString(curveAttribute.xFormat));
+                var content = new GUIContent(rangeX.y.ToString(xLabelFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.xMax - contentSize.x, curveRect.yMax - contentSize.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
@@ -220,14 +282,14 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             GUI.color = new Color(.5f, 1, 0.5f, 0.5f);
             // yMin label
             {
-                var content = new GUIContent(rangeY.x.ToString(curveAttribute.yFormat));
+                var content = new GUIContent(rangeY.x.ToString(yLabelFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.x - contentSize.x - 4, curveRect.yMax - contentSize.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
 
             // yMax label
             {
-                var content = new GUIContent(rangeY.y.ToString(curveAttribute.yFormat));
+                var content = new GUIContent(rangeY.y.ToString(yLabelFormat));
                 var contentSize = EditorStyles.whiteMiniLabel.CalcSize(content);
                 GUI.Label(new Rect(curveRect.x - contentSize.x - 4, curveRect.y, contentSize.x, contentSize.y), content, EditorStyles.whiteMiniLabel);
             }
@@ -236,7 +298,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             GUI.color = Color.white;
         }
 
-        private void DrawCurve(Rect curveRect, IRealCurve curve, Vector2 rangeX, Vector2 rangeY, Color color)
+        private static void DrawCurve(Rect curveRect, IRealCurve curve, Vector2 rangeX, Vector2 rangeY, Color color)
         {
             float curveWidth = curveRect.width;
             int x = 0;

@@ -1,10 +1,14 @@
 using Unity.Collections;
 using Unity.Jobs;
+#if UNITY_BURST
 using Unity.Burst;
+#endif
 
 namespace SeweralIdeas.Utils
 {
-    [Unity.Burst.BurstCompile(CompileSynchronously = true)]
+    #if UNITY_BURST
+    [BurstCompile(CompileSynchronously = true)]
+    #endif
     public struct MemsetNativeArray<T> : IJobParallelFor where T : unmanaged
     {
         private NativeArray<T> array;
