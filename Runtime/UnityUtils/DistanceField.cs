@@ -1,10 +1,13 @@
 ﻿// Algorithm described at https://prideout.net/blog/distance_fields/
+#if UNITY_COLLECTIONS && UNITY_MATHEMATICS
 
 using SeweralIdeas.Utils;
-using Unity.Mathematics;
 using UnityEngine;
 using Unity.Jobs;
+#if UNITY_BURST
 using Unity.Burst;
+#endif
+using Unity.Mathematics;
 using Unity.Collections;
 
 namespace SeweralIdeas.UnityUtils
@@ -141,8 +144,9 @@ namespace SeweralIdeas.UnityUtils
                 return m_solveJobHandle;
             }
         }
-
+#if UNITY_BURST
         [BurstCompile(CompileSynchronously = true)]
+#endif
         private struct JobNegate : IJobParallelFor
         {
             [ReadOnly] private NativeArray<Cell> input;
@@ -164,8 +168,10 @@ namespace SeweralIdeas.UnityUtils
                     SetZero(i % width, i / width, output, width);
             }
         }
-
+        
+#if UNITY_BURST
         [BurstCompile(CompileSynchronously = true)]
+#endif
         private struct JobCombine : IJobParallelFor
         {
             public NativeArray<Cell> main;
@@ -214,7 +220,9 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
+#if UNITY_BURST
         [BurstCompile(CompileSynchronously = true)]
+#endif
         private struct RowJob : IJob
         {
             [Unity.Collections.LowLevel.Unsafe.NativeDisableContainerSafetyRestriction]
@@ -359,8 +367,9 @@ namespace SeweralIdeas.UnityUtils
                 }
             }
         }
-
-        [BurstCompile(CompileSynchronously = true)]
+#if UNITY_BURST
+        [BurstCompile]
+#endif
         private struct TransposeJob : IJob
         {
             private int m_width;
@@ -429,8 +438,9 @@ namespace SeweralIdeas.UnityUtils
             return job.Schedule(dependsOn);
         }
 
-
+#if UNITY_BURST
         [BurstCompile]
+#endif
         private struct GrabJobColor : IJobParallelFor
         {
             [ReadOnly] private Vector2Int size;
@@ -472,8 +482,9 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
-
+#if UNITY_BURST
         [BurstCompile]
+#endif
         private struct GrabJobColor32 : IJobParallelFor
         {
             [ReadOnly] private Vector2Int size;
@@ -516,3 +527,4 @@ namespace SeweralIdeas.UnityUtils
         }
     }
 }
+#endif
