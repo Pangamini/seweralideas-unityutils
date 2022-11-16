@@ -20,7 +20,7 @@ namespace SeweralIdeas.UnityUtils.Curves
             this.yFormat = yFormat;
         }
     
-        public CurveAttribute(float min, float max, string xFormat = "N2", string yFormat = "N2") : this(min, max, EditorGUIUtility.singleLineHeight * 4f, xFormat, yFormat)
+        public CurveAttribute(float min, float max, string xFormat = "N2", string yFormat = "N2") : this(min, max, 128, xFormat, yFormat)
         {
         }
     }
