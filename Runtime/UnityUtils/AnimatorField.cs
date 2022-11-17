@@ -28,7 +28,6 @@ namespace SeweralIdeas.UnityUtils
         {
             field.Reset(animator);
         }
-        
     }
 
     public struct AnimatorBool
@@ -48,6 +47,8 @@ namespace SeweralIdeas.UnityUtils
         {
             animator.SetBool(m_hash, value);
         }
+
+        public static implicit operator AnimatorBool(string name) => new (name);
     }
 
     public struct AnimatorFloat
@@ -67,6 +68,8 @@ namespace SeweralIdeas.UnityUtils
         {
             animator.SetFloat(m_hash, value);
         }
+        
+        public static implicit operator AnimatorFloat(string name) => new (name);
     }
 
     public struct AnimatorInt
@@ -86,6 +89,8 @@ namespace SeweralIdeas.UnityUtils
         {
             animator.SetInteger(m_hash, value);
         }
+        
+        public static implicit operator AnimatorInt(string name) => new (name);
     }
 
     public struct AnimatorTrigger
@@ -110,5 +115,7 @@ namespace SeweralIdeas.UnityUtils
         {
             animator.ResetTrigger(m_hash);
         }
+        
+        public static implicit operator AnimatorTrigger(string name) => new (name);
     }
 }
