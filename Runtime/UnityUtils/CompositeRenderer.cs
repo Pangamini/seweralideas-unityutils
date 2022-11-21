@@ -8,7 +8,7 @@ namespace SeweralIdeas.UnityUtils
 {
     public class CompositeRenderer : MonoBehaviour, IEnumerable<Renderer>
     {
-        [SerializeField, EditorOnly] private List<Renderer> m_renderers;
+        [SerializeField, EditorOnly] private List<Renderer> m_renderers = new();
         private HashSet<IRenderMethod> m_renderMethods = new HashSet<IRenderMethod>();
 
         public int Count => m_renderers.Count;
