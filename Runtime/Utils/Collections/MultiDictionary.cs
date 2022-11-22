@@ -140,6 +140,7 @@ namespace SeweralIdeas.Collections
             public Enumerator(MultiDictionary<TKey, TVal> dict)
             {
                 m_setReady = false;
+                m_setEnumerator = default;
                 m_dictEnumerator = dict.m_dict.GetEnumerator();
             }
 
