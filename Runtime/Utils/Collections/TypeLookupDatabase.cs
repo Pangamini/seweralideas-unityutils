@@ -66,7 +66,7 @@ namespace SeweralIdeas.Collections
             }
         }
 
-        public ReadonlySet<TType> GetObjectsByType<TType>() where TType : class
+        public ReadonlySet<TType> GetObjectsByType<TType>() where TType : T
         {
             if (m_objectsByType.TryGetValue(typeof(TType), out IMySet set))
             {
@@ -105,7 +105,7 @@ namespace SeweralIdeas.Collections
             m_lookupDatabase = lookupDatabase;
         }
 
-        public ReadonlySet<TType> GetObjectsByType<TType>() where TType : class => m_lookupDatabase.GetObjectsByType<TType>();
+        public ReadonlySet<TType> GetObjectsByType<TType>() where TType : T => m_lookupDatabase.GetObjectsByType<TType>();
     }
 
 
