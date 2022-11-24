@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace SeweralIdeas.Collections
@@ -110,6 +111,15 @@ namespace SeweralIdeas.Collections
         {
             m_set.CopyTo(array, arrayIndex);
         }
+
+        public void VisitAll(Action<T> visitor)
+        {
+            foreach (var obj in m_set)
+            {
+                visitor(obj);
+            }
+            
+        }
     }
 
     public class ReadonlySet<T> : IEnumerable<T>, IReadonlySet
@@ -163,6 +173,11 @@ namespace SeweralIdeas.Collections
         System.Type IReadonlySet.GetContainedType()
         {
             return typeof(T);
+        }
+
+        public void VisitAll(Action<T> visitor)
+        {
+            m_set.VisitAll(visitor);
         }
     }
 }
