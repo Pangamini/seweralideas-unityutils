@@ -28,7 +28,7 @@ namespace SeweralIdeas.UnityUtils
             s_search = true;
         }
 
-        void Awake()
+        protected void Awake()
         {         
             if ( s_instance == null )
                 s_instance = (T)this;
@@ -41,7 +41,7 @@ namespace SeweralIdeas.UnityUtils
             OnAwake();
         }
 
-        private void OnDestroy()
+        protected void OnDestroy()
         {
             if (s_instance == this)
             {
