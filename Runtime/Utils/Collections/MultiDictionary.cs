@@ -4,7 +4,8 @@ namespace SeweralIdeas.Collections
 {
     public class MultiDictionary<TKey, TVal>
     {
-
+        private static readonly HashSet<TVal> s_emptySet = new();
+        
         private Dictionary<TKey, HashSet<TVal>> m_dict;
 
         ///////////////////////////////////////////////////////////////////////////////////////
@@ -79,24 +80,25 @@ namespace SeweralIdeas.Collections
 
         ////////////////////////////////////////////////////////////////////////////
 
-        public HashSet<TVal> GetItems(TKey key)
+        public ReadonlySetView<TVal> GetItems(TKey key)
         {
             HashSet<TVal> valList = TryGetList(key);
 
             if (valList != null)
-                return valList;
-            return null;
+                return new(valList);
+            
+            return new(s_emptySet);
         }
 
 
         ///////////////////////////////////////////////////////////////////////////////////////
 
-        public int keysCount
+        public int KeysCount
         {
             get { return m_dict.Count; }
         }
 
-        public int valuesCount
+        public int ValuesCount
         {
             get
             {
@@ -109,12 +111,14 @@ namespace SeweralIdeas.Collections
 
         public int GetValuesCount(TKey key)
         {
-            HashSet<TVal> vals = GetItems(key);
-            if (vals != null)
-                return vals.Count;
-            else
-                return 0;
+            HashSet<TVal> valList = TryGetList(key);
+
+            if (valList != null)
+                return valList.Count;
+
+            return 0;
         }
+        
 
         ///////////////////////////////////////////////////////////////////////////////////////
 
