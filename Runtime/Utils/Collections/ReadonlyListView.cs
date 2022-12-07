@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 namespace SeweralIdeas.Collections
 {
-    public class ListReadonly<T> : IReadOnlyList<T>
+    public readonly struct ReadonlyListView<T> : IReadOnlyList<T>
     {
-        private List<T> m_list;
-        public ListReadonly(List<T> list)
+        private readonly List<T> m_list;
+        public ReadonlyListView(List<T> list)
         {
             m_list = list;
         }
