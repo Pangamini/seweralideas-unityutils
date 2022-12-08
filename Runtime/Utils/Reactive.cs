@@ -17,7 +17,7 @@ namespace SeweralIdeas.Utils
 
         public T Value
         {
-            get { return m_value; }
+            get => m_value;
             set
             {
                 
@@ -28,17 +28,14 @@ namespace SeweralIdeas.Utils
             }
         }
 
-        public event Action<T> onChanged
+        public event Action<T> Changed
         {
             add
             {
                 m_onChanged += value;
                 value(Value);
             }
-            remove
-            {
-                m_onChanged -= value;
-            }
+            remove => m_onChanged -= value;
         }
 
         public struct Readonly
@@ -55,11 +52,11 @@ namespace SeweralIdeas.Utils
             {
                 add
                 {
-                    m_reactive.onChanged += value;
+                    m_reactive.Changed += value;
                 }
                 remove
                 {
-                    m_reactive.onChanged -= value;
+                    m_reactive.Changed -= value;
                 }
             }
         }
