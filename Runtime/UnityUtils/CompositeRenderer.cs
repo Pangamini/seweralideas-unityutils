@@ -27,7 +27,7 @@ namespace SeweralIdeas.UnityUtils
 
         private void Reset()
         {
-            var newRenderers = GetComponentsInChildren<Renderer>();
+            var newRenderers = GetComponentsInChildren<Renderer>(true);
             SetRenderers(newRenderers);
         }
 
