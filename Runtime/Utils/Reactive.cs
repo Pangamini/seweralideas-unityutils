@@ -48,7 +48,7 @@ namespace SeweralIdeas.Utils
             private Reactive<T> m_reactive;
             public T Value => m_reactive.Value;
 
-            public event Action<T> onChanged
+            public event Action<T> Changed
             {
                 add
                 {
