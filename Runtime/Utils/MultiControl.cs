@@ -24,7 +24,7 @@ namespace SeweralIdeas.Utils
                 if (EqualityComparer<T>.Default.Equals(m_value, value))
                     return;
                 m_value = value;
-                onValueChanged?.Invoke(Value);
+                ValueChanged?.Invoke(Value);
             }
         }
 
@@ -37,10 +37,10 @@ namespace SeweralIdeas.Utils
 
         public MultiControl(T defaultValue, Action<T> callback) : this(defaultValue)
         {
-            onValueChanged += callback;
+            ValueChanged += callback;
         }
 
-        public event Action<T> onValueChanged;
+        public event Action<T> ValueChanged;
 
         int IComparer<Request>.Compare(Request x, Request y)
         {
