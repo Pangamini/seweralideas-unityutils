@@ -117,5 +117,39 @@ namespace SeweralIdeas.UnityUtils
                 }
             }
         }
+
+        public class AddMaterialMethod : IRenderMethod
+        {
+            public AddMaterialMethod(Material material)
+            {
+                Material = material;
+            }
+            
+            public Material Material { get; private set; }
+            
+            void IRenderMethod.EnableOnRenderer(Renderer rend) => AddMaterial(rend);
+            void IRenderMethod.DisableOnRenderer(Renderer rend) => RemoveMaterial(rend);
+            
+            private void AddMaterial(Renderer renderer)
+            {
+                using (ListPool<Material>.Get(out var materials))
+                {
+                    renderer.GetSharedMaterials(materials);
+                    materials.Add(Material);
+                    renderer.sharedMaterials = materials.ToArray(); // is ths a joke? No renderer.SetSharedMaterials(List<>) ?
+                }
+            }
+        
+            private void RemoveMaterial(Renderer renderer)
+            {
+                using (ListPool<Material>.Get(out var materials))
+                {
+                    renderer.GetSharedMaterials(materials);
+                    materials.Remove(Material);
+                    renderer.sharedMaterials = materials.ToArray(); // is ths a joke? No renderer.SetSharedMaterials(List<>) ?
+                }
+            }
+        }
+        
     }
 }
