@@ -27,8 +27,7 @@ namespace SeweralIdeas.UnityUtils
 
         private void Reset()
         {
-            var newRenderers = GetComponentsInChildren<Renderer>(true);
-            SetRenderers(newRenderers);
+            FindRenderers();
         }
 
         public void SetRenderers(IList<Renderer> newRenderers)
@@ -150,6 +149,32 @@ namespace SeweralIdeas.UnityUtils
                 }
             }
         }
-        
+
+        [ContextMenu("Find Renderers")]
+        public void FindRenderers()
+        {
+#if UNITY_EDITOR
+            UnityEditor.Undo.RecordObject(this, "Find Renderers");
+#endif
+            using (ListPool<Renderer>.Get(out var renderers))
+            {
+                GetComponentsInChildren(renderers);
+                for (int i = 0; i < renderers.Count;)
+                {
+                    var renderer = renderers[i];
+                    if (renderer.GetComponentInParent<CompositeRenderer>() != this)
+                    {
+                        renderers[i] = renderers[^1];
+                        renderers.RemoveAt(renderers.Count - 1);
+                        continue;
+                    }
+
+                    ++i;
+                }
+
+                SetRenderers(renderers);
+            }
+        }
+
     }
 }
