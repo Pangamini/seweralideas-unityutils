@@ -44,8 +44,13 @@ namespace SeweralIdeas.Utils
 
         int IComparer<Request>.Compare(Request x, Request y)
         {
-            int result = -x.Priority.CompareTo(y.Priority);
-            return result != 0 ? result : x.UniqueId.CompareTo(y.UniqueId);
+            return CompareRequests(x, y);
+        }
+
+        private static int CompareRequests(Request lhs, Request rhs)
+        {
+            int result = -lhs.Priority.CompareTo(rhs.Priority);
+            return result != 0 ? result : lhs.UniqueId.CompareTo(rhs.UniqueId);
         }
 
         public Request CreateRequest(string name, int priority, T value = default, bool enabled = true)
@@ -67,22 +72,12 @@ namespace SeweralIdeas.Utils
 
         private void OnRequestChanged(Request changedRequest)
         {
-            var enumerator = m_requests.GetEnumerator();
             var value = m_defaultValue;
-            if (enumerator.MoveNext())
+            
+            foreach(var request in m_requests)
             {
-                var current = enumerator.Current;
-                int priority = current.Priority;
-                value = current.Value;
-
-                while (enumerator.MoveNext())
-                {
-                    var request = enumerator.Current;
-
-                    if (request.Priority != priority) break;
-                    if (Comparer<T>.Default.Compare(request.Value, value) > 0)
-                        value = request.Value;
-                }
+                value = request.Value;
+                break;
             }
 
             Value = value;
