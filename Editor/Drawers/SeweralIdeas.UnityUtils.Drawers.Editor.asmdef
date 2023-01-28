@@ -2,7 +2,8 @@
     "name": "SeweralIdeas.UnityUtils.Drawers.Editor",
     "rootNamespace": "SeweralIdeas.UnityUtils.Drawers.Editor",
     "references": [
-        "GUID:43af6c3c47efade468f8376278f0d886"
+        "GUID:43af6c3c47efade468f8376278f0d886",
+        "GUID:cf5a3647f2623f044943c7d12af0b6c4"
     ],
     "includePlatforms": [
         "Editor"
