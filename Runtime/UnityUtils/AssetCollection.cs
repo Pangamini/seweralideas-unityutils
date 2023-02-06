@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using SeweralIdeas.Collections;
+using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
 {
@@ -16,5 +17,6 @@ namespace SeweralIdeas.UnityUtils
             return m_collection[Random.Range(0, m_collection.Length)];
         }
 
+        public ReadonlyArrayView<T>.Enumerator GetEnumerator() => new(m_collection);
     }
 }
