@@ -46,32 +46,30 @@ namespace SeweralIdeas.Utils.MathUtils
             return pos;
         }
 
-        public Vector3 Evaluate(float time, Vector3 origin, Quaternion orientation)
+        public Vector3 Evaluate(float time, Vector3 origin, Vector3 forward, Vector3 up)
         {
-            var localVal = Evaluate(time);
-            var oriented = orientation * localVal;
-            var translated = oriented + origin;
-            return translated;
+            var parabolaPos = Evaluate(time);
+            return origin + forward * parabolaPos.x + up * parabolaPos.y;
         }
-
-        public void DebugDraw(Quaternion orietnation, Vector3 origin)
-        {
-            Debug.DrawLine(Evaluate(0, origin, orietnation), Evaluate(duration, origin, orietnation), Color.blue, duration);
-
-            var count = 128;
-
-            Vector3 prev = Evaluate(0, origin, orietnation);
-
-            for (int i = 1; i <= count; ++i)
-            {
-                float progress = (float)i / count;
-                float time = progress * duration;
-                var pos = Evaluate(time, origin, orietnation);
-                Debug.DrawLine(prev, pos, Color.yellow, duration);
-                prev = pos;
-            }
-
-        }
+        
+        // public void DebugDraw(Quaternion orietnation, Vector3 origin)
+        // {
+        //     Debug.DrawLine(Evaluate(0, origin, orietnation), Evaluate(duration, origin, orietnation), Color.blue, duration);
+        //
+        //     var count = 128;
+        //
+        //     Vector3 prev = Evaluate(0, origin, orietnation);
+        //
+        //     for (int i = 1; i <= count; ++i)
+        //     {
+        //         float progress = (float)i / count;
+        //         float time = progress * duration;
+        //         var pos = Evaluate(time, origin, orietnation);
+        //         Debug.DrawLine(prev, pos, Color.yellow, duration);
+        //         prev = pos;
+        //     }
+        //
+        // }
 
     }
 }
