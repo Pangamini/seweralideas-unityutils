@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.4]
+### Fixed
+- A nasty ugly bug in MultiControl that prevented Requests from being removed
+
 ## [0.1.3]
 ### Added
 - Reactive struct (value wrapper)
