@@ -14,6 +14,11 @@ namespace SeweralIdeas.UnityUtils
             return new Vector3(v.x, r, v.y);
         }
 
+        public static Vector3 xyR(this Vector2 v, float r)
+        {
+            return new Vector3(v.x, v.y, r);
+        }
+
         public static Vector2 xz(this Vector3 v)
         {
             return new Vector2(v.x, v.z);
