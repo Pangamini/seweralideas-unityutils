@@ -22,7 +22,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             var sceneAssetProperties = Multiple(scenePathProperty);
             //var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
             
-            EditorGUI.PropertyField(firstLine, sceneAssetProperty);
+            EditorGUI.PropertyField(firstLine, sceneAssetProperty, label);
 
             bool inBuild = true;
             EditorBuildSettingsScene[] oldScenes = EditorBuildSettings.scenes;
