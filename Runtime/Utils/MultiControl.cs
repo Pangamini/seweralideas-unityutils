@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SeweralIdeas.Utils
 {
@@ -49,8 +50,16 @@ namespace SeweralIdeas.Utils
 
         private static int CompareRequests(Request lhs, Request rhs)
         {
+            if(ReferenceEquals(lhs, rhs))
+                return 0;
+            
             int result = -lhs.Priority.CompareTo(rhs.Priority);
-            return result != 0 ? result : lhs.UniqueId.CompareTo(rhs.UniqueId);
+            if(result != 0)
+                return result;
+            
+            result = lhs.UniqueId.CompareTo(rhs.UniqueId);
+            Debug.Assert(result != 0);  // can't be, we compared ReferenceEquals
+            return result;
         }
 
         public Request CreateRequest(string name, int priority, T value = default, bool enabled = true)
@@ -60,13 +69,15 @@ namespace SeweralIdeas.Utils
 
         private void AddRequest(Request request)
         {
-            m_requests.Add(request);
+            bool added = m_requests.Add(request);
+            Debug.Assert(added);
             OnRequestChanged(request);
         }
 
         private void RemoveRequest(Request request)
         {
-            m_requests.Remove(request);
+            bool removed = m_requests.Remove(request);
+            Debug.Assert(removed);
             OnRequestChanged(request);
         }
 
@@ -76,6 +87,7 @@ namespace SeweralIdeas.Utils
             
             foreach(var request in m_requests)
             {
+                Debug.Assert(request.Enabled);
                 value = request.Value;
                 break;
             }
@@ -95,8 +107,8 @@ namespace SeweralIdeas.Utils
                 m_owner = multiControl;
                 Priority = priority;
                 Value = value;
-                Enabled = enabled;
                 UniqueId = idCounter++;
+                Enabled = enabled;
             }
 
             public readonly int UniqueId;
