@@ -5,30 +5,28 @@ using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
 {
-    public abstract class AssetByNameLookup : ScriptableObject
+    [Serializable]
+    public abstract class AssetByNameTable
     {
 #if UNITY_EDITOR
         [ContextMenu("Find All Assets")]
-        protected void Editor_FindAllTrophies()
+        protected void Editor_FindAll()
         {
-            Editor_AbstractFindAllTrophies();
+            Editor_AbstractFindAll();
         }
 
-        protected abstract void Editor_AbstractFindAllTrophies();
+        protected abstract void Editor_AbstractFindAll();
 #endif
     }
     
-    public abstract class AssetByNameLookup<T> : AssetByNameLookup, ISerializationCallbackReceiver, IReadOnlyDictionary<string, T> where T:UnityEngine.Object
+    [Serializable]
+    public class AssetByNameTable<T> : AssetByNameTable, ISerializationCallbackReceiver, IReadOnlyDictionary<string, T> where T:UnityEngine.Object
     {
         [SerializeField] private List<T> m_list;
         [NonSerialized] private bool m_dictDirty;
 
         private readonly Dictionary<string, T> m_dict = new();
-
-        protected void OnEnable() => EnsureDictUpToDate();
-
-        protected void OnValidate() => EnsureDictUpToDate();
-
+        
         private void EnsureDictUpToDate()
         {
             if (!m_dictDirty)
@@ -44,7 +42,7 @@ namespace SeweralIdeas.UnityUtils
                 var key = element.name;
                 if (m_dict.ContainsKey(key))
                 {
-                    Debug.LogError($"{name} contains duplicate key {key}", this);
+                    Debug.LogError($"{GetType().Name} contains duplicate key {key}");
                     continue;
                 }
                 
@@ -111,7 +109,7 @@ namespace SeweralIdeas.UnityUtils
         
         
 #if UNITY_EDITOR
-        protected override void Editor_AbstractFindAllTrophies()
+        protected override void Editor_AbstractFindAll()
         {
             m_dictDirty = true;
             m_list.Clear();
@@ -126,5 +124,10 @@ namespace SeweralIdeas.UnityUtils
             EnsureDictUpToDate();
         }
 #endif
+
+        class AssetByNameLookup<T> : ScriptableObject where T:UnityEngine.Object
+        {
+            [SerializeField] private AssetByNameTable<T> m_table;
+        }
     }
 }
