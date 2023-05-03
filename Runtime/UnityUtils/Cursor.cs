@@ -5,6 +5,7 @@ namespace SeweralIdeas.UnityUtils
     public class Cursor : ScriptableObject
     {
         [SerializeField] public Texture2D icon;
-        [SerializeField] public Vector2 pivot;
+        [SerializeField] public Vector2 pivot = Vector2.zero;
+        [SerializeField] public CursorMode mode = CursorMode.Auto;
     }
 }
