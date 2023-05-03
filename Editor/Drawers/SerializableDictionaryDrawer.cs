@@ -89,6 +89,9 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
     [CustomPropertyDrawer(typeof(SerializableDictionary<,>.Element), true)]
     public class SerializableDictionaryElementDrawer : PropertyDrawer
     {
+        private static readonly GUIContent s_content_key = new GUIContent("key");
+        private static readonly GUIContent s_content_val = new GUIContent("val");
+        
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
             var name = property.FindPropertyRelative("m_key");
@@ -106,8 +109,11 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             var nameRect = new Rect(position.x, position.y, position.width / 2 - gap, position.height);
             var valueRect = new Rect(nameRect.xMax + gap, position.y, position.width - nameRect.width, position.height);
 
-            EditorGUI.PropertyField(nameRect, name, GUIContent.none);
-            EditorGUI.PropertyField(valueRect, value, GUIContent.none);
+            var oldWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = 22;
+            EditorGUI.PropertyField(nameRect, name, s_content_key);
+            EditorGUI.PropertyField(valueRect, value, s_content_val);
+            EditorGUIUtility.labelWidth = oldWidth;
         }
     }
 }
