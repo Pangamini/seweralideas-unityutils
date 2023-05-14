@@ -47,6 +47,23 @@ namespace SeweralIdeas.Collections
             return valList.Add(val);
         }
 
+        public bool Add(TKey key, TVal val, out bool keyAdded)
+        {
+
+            HashSet<TVal> valList = TryGetList(key);
+            if (valList == null)
+            {
+                valList = new HashSet<TVal>();
+                m_dict.Add(key, valList);
+                keyAdded = true;
+            }
+            else
+            {
+                keyAdded = false;
+            }
+            return valList.Add(val);
+        }
+
         ////////////////////////////////////////////////////////////////////////////
 
         public bool Remove(TKey key, TVal val)
