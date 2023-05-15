@@ -24,15 +24,16 @@ namespace SeweralIdeas.UnityUtils.Editor
                     o = fi.Value.GetValue(o);
                 }
 
-                return GetFieldOrProperty(o.GetType(), name);
+                return fi;
             }
             return null;
         }
 
-        public static FieldOrProperty? FindFieldInfo(string[] path, Object[] objs)
+        public static FieldOrProperty? FindFieldInfo(string path, Object[] objs)
         {
+            var pathSplit = path.Split('.');
             if (path.Length > 0)
-                return FindFieldInfo(path, path[path.Length - 1], objs);
+                return FindFieldInfo(pathSplit, pathSplit[^1], objs);
             return null;
         }
 
