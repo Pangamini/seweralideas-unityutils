@@ -13,17 +13,26 @@ namespace SeweralIdeas.UnityUtils
         {
             public TKey m_key;
             public TVal m_value;
+             
+            public Element(TKey key, TVal value)
+            {
+                m_key = key;
+                m_value = value;
+            }
         }
 
 
         [SerializeField] private List<Element> m_list;
         [NonSerialized] private bool m_dictDirty;
+        [NonSerialized] private bool m_listDirty;
 
         private readonly Dictionary<TKey, TVal> m_dict = new();
         private void EnsureDictUpToDate()
         {
             if (!m_dictDirty)
                 return;
+            
+            Debug.Assert(!m_listDirty);
             
             m_dict.Clear();
             m_dict.EnsureCapacity(m_list.Count);
@@ -86,9 +95,25 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
-        void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            if(!m_listDirty)
+                return;
+            
+            m_list.Clear();
+            foreach (var pair in m_dict)
+            {
+                m_list.Add(new Element(pair.Key, pair.Value));
+            }
+                
+            m_listDirty = false;
+        }
 
-        void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
+        void ISerializationCallbackReceiver.OnAfterDeserialize()
+        {
+            m_listDirty = false;
+            m_dictDirty = true;
+        }
 
         IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => GetEnumerator();
 
@@ -98,6 +123,29 @@ namespace SeweralIdeas.UnityUtils
         {
             EnsureDictUpToDate();
             return m_dict.GetEnumerator();
+        }
+        
+        public void Clear()
+        {
+            m_dict.Clear();
+            m_list.Clear();
+        }
+        
+        public void Add(TKey key, TVal value)
+        {
+            EnsureDictUpToDate();
+            m_dict.Add(key, value);
+            m_listDirty = true;
+        }
+
+        public bool Remove(TKey key)
+        {
+            EnsureDictUpToDate();
+            if(!m_dict.Remove(key))
+                return false;
+            
+            m_listDirty = true;
+            return true;
         }
     }
 }

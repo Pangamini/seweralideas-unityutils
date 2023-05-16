@@ -8,7 +8,7 @@ namespace SeweralIdeas.UnityUtils
 {
     public static class UnityExtensions
     {
-        public static T FindObjectOfType<T>(this UnityEngine.SceneManagement.Scene scene) where T : Component
+        public static T FindObjectOfType<T>(this UnityEngine.SceneManagement.Scene scene) where T:class
         {
             using (ListPool<GameObject>.Get(out var list))
             {
@@ -16,13 +16,14 @@ namespace SeweralIdeas.UnityUtils
                 foreach (var go in list)
                 {
                     var comp = go.GetComponentInChildren<T>();
-                    if (comp) return comp;
+                    if (comp != null) 
+                        return comp;
                 }
             }
             return null;
         }
 
-        public static void FindObjectsOfType<T>(this UnityEngine.SceneManagement.Scene scene, List<T> result) where T : Component
+        public static void FindObjectsOfType<T>(this UnityEngine.SceneManagement.Scene scene, List<T> result) where T:class
         {
             result.Clear();
             var compList = new List<T>();   // IL2CPP AOT would fail with StackAlloc
