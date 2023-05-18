@@ -2,6 +2,7 @@
 using JetBrains.Annotations;
 using SeweralIdeas.Pooling;
 using SeweralIdeas.Utils;
+using UnityEditor;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
@@ -69,6 +70,15 @@ namespace SeweralIdeas.UnityUtils
         {
             var r = go.GetComponent<T>();
             return r ? r : go.AddComponent<T>();
+        }
+
+        public static bool IsPlaying(this GameObject go)
+        {
+            #if UNITY_EDITOR
+            if(!Application.isPlaying)
+                return false;
+            #endif
+            return go.scene.IsValid();
         }
         
         public static float ExplosionImpulseFalloff(float distance, float radius, ExplosionFalloff falloffMode)
