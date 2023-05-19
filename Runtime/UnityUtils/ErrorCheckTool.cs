@@ -32,8 +32,9 @@ namespace SeweralIdeas.UnityUtils
         public static void ClearErrorCache()
         {
             s_cachedErrors.Clear();
+            EditorApplication.RepaintHierarchyWindow();
         }
-        
+
         public struct GameObjectError
         {
             public GameObject gameObject;
