@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using SeweralIdeas.Utils;
+using UnityEditor.VersionControl;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
@@ -100,7 +101,16 @@ namespace SeweralIdeas.UnityUtils
         private static bool VisitHits(Vector3 origin, int hitCount, RaycastHit[] hitBuffer, out RaycastHit hitResult, Visitor<RaycastHit> visitor)
         {
             for (int i = 0; i < hitCount; ++i)
-                m_hitDistancesBuffer[i] = (hitBuffer[i].point - origin).sqrMagnitude;
+            {
+                var hit = hitBuffer[i];
+                if(hit.point == default && hit.distance == 0f)
+                {
+                    hit.point = origin;
+                    hitBuffer[i] = hit;
+                }
+                
+                m_hitDistancesBuffer[i] = (hit.point - origin).sqrMagnitude;
+            }
 
             Array.Sort(m_hitDistancesBuffer, hitBuffer, 0, hitCount);
 

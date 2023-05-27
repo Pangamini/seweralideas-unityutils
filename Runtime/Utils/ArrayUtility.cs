@@ -8,7 +8,7 @@ using SeweralIdeas.Pooling;
 
 namespace SeweralIdeas.Utils
 {
-    public class ArrayUtility
+    public static class ArrayUtility
     {
 
         public static bool Contains<T>(T[] array, T value)
@@ -114,12 +114,12 @@ namespace SeweralIdeas.Utils
             }
         }
 
-        public static int IndexOf<T>(T[] array, T value)
+        public static int IndexOf<T>(this T[] array, T value)
         {
             return Array.IndexOf(array, value);
         }
 
-        public static T[] SubArray<T>(T[] data, int index, int length)
+        public static T[] SubArray<T>(this T[] data, int index, int length)
         {
             T[] result = new T[length];
             Array.Copy(data, index, result, 0, length);
@@ -127,7 +127,7 @@ namespace SeweralIdeas.Utils
         }
 
 #if UNITY
-        public static T PickRandom<T>(T[] data)
+        public static T PickRandom<T>(this T[] data)
         {
             var index = UnityEngine.Random.Range(0, data.Length);
             return data[index];
