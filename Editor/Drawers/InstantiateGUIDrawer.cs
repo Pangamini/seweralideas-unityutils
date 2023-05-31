@@ -28,7 +28,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             s_stylePlus ??= "OL Plus";
             s_styleMinus ??= "OL Minus";
             float buttonWidth = 24;
-            
+
             Rect buttonRect = new Rect(position.xMax - buttonWidth, position.y, buttonWidth, EditorGUIUtility.singleLineHeight);
 
             if(property.managedReferenceValue != null)
@@ -39,30 +39,39 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
                     property.serializedObject.ApplyModifiedProperties();
                     return;
                 }
-                
-                EditorGUI.PropertyField(position, property, new GUIContent(property.managedReferenceValue.GetType().Name), true);
-                return;
+
+                var myLabel = new GUIContent($"{label.text} ({property.managedReferenceValue.GetType().Name})");
+
+                EditorGUI.PropertyField(position, property, myLabel, true);
             }
 
-
-            EditorGUI.LabelField(position, label, new GUIContent("null"));
-
-            if(GUI.Button(buttonRect, GUIContent.none, s_stylePlus))
+            else
             {
                 var attrib = (InstantiateGUI)attribute;
-                TypeUtility.TypeList typeList = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(attrib.BaseType, false, true));
-                GenericMenu menu = new GenericMenu();
+                var myLabel = new GUIContent($"{label.text} ({attrib.BaseType.Name})");
+                EditorGUI.LabelField(position, myLabel, new GUIContent("null"));
 
-                foreach (Type type in typeList.types)
+                if(GUI.Button(buttonRect, GUIContent.none, s_stylePlus))
                 {
-                    menu.AddItem(new GUIContent(type.Name), false, () =>
-                    {
-                        property.managedReferenceValue = Activator.CreateInstance(type);
-                        property.serializedObject.ApplyModifiedProperties();
-                    });
-                }
+                    var controlId = GUIUtility.GetControlID(FocusType.Passive, buttonRect);
 
-                menu.ShowAsContext();
+                    TypeUtility.TypeList typeList = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(attrib.BaseType, false, true));
+
+                    List<GUIContent> options = new();
+                    foreach (Type type in typeList.types)
+                    {
+                        options.Add(new GUIContent(type.Name));
+                    }
+
+                    Action<int> onKeySelected = (selectedIndex) =>
+                    {
+                        property.managedReferenceValue = Activator.CreateInstance(typeList.types[selectedIndex]);
+                        property.serializedObject.ApplyModifiedProperties();
+                    };
+
+                    var scrRect = new Rect(GUIUtility.GUIToScreenPoint(buttonRect.position), new Vector2(256, buttonRect.height));
+                    AdvancedPopupWindow.ShowWindow(controlId, scrRect, 0, options, true, null, onKeySelected);
+                }
             }
 
         }
