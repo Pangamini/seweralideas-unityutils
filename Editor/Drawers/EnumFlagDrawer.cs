@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using SeweralIdeas.UnityUtils.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
         {
             EnumFlagAttribute flagSettings = (EnumFlagAttribute)attribute;
             List<Enum> result = new List<Enum>();
-            Editor.EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, result);
+            EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, result);
 
             var first = result[0];
             var mixed = false;
