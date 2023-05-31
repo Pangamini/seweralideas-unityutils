@@ -23,6 +23,7 @@ namespace SeweralIdeas.Utils
             public readonly string[] names;
         }
 
+        [Serializable]
         public struct TypeQuery
         {
             public Type type;
