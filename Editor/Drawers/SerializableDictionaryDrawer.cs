@@ -101,17 +101,17 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            var name = property.FindPropertyRelative("m_key");
+            var key = property.FindPropertyRelative("m_key");
             var value = property.FindPropertyRelative("m_value");
 
             int gap = 8;
             
-            var nameRect = new Rect(position.x, position.y, position.width / 2 - gap, position.height);
-            var valueRect = new Rect(nameRect.xMax + gap, position.y, position.width - nameRect.width, position.height);
+            var keyRect = new Rect(position.x, position.y, position.width / 2 - gap, position.height);
+            var valueRect = new Rect(keyRect.xMax + gap, position.y, position.width - keyRect.width, position.height);
 
             var oldWidth = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 22;
-            EditorGUI.PropertyField(nameRect, name, s_content_key);
+            EditorGUI.PropertyField(keyRect, key, s_content_key);
             EditorGUI.PropertyField(valueRect, value, s_content_val);
             EditorGUIUtility.labelWidth = oldWidth;
         }

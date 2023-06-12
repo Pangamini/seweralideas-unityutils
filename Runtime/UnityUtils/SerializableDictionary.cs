@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using SeweralIdeas.Collections;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
@@ -13,7 +14,7 @@ namespace SeweralIdeas.UnityUtils
         {
             public TKey m_key;
             public TVal m_value;
-             
+            
             public Element(TKey key, TVal value)
             {
                 m_key = key;
@@ -53,6 +54,8 @@ namespace SeweralIdeas.UnityUtils
                 
             m_dictDirty = false;
         }
+
+        public ReadonlyDictView<TKey, TVal> GetReadonlyView() => new(m_dict);
 
         public int Count => m_dict.Count;
 
