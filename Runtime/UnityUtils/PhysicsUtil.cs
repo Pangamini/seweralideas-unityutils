@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using SeweralIdeas.Utils;
-using UnityEditor.VersionControl;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
