@@ -16,10 +16,10 @@ namespace SeweralIdeas.UnityUtils
     public static class ErrorCheckTool
     {
 
-        public const string childHasErrors = "Child has errors";
-        public const string childHasWarnings = "Child has warnings";
+        private const string ChildHasErrors = "Child has errors";
+        private const string ChildHasWarnings = "Child has warnings";
 
-        private static Dictionary<GameObject, GameObjectError> s_cachedErrors = new Dictionary<GameObject, GameObjectError>();
+        private static readonly Dictionary<GameObject, GameObjectError> s_cachedErrors = new Dictionary<GameObject, GameObjectError>();
 
 #if UNITY_EDITOR
         static ErrorCheckTool()
@@ -32,7 +32,9 @@ namespace SeweralIdeas.UnityUtils
         public static void ClearErrorCache()
         {
             s_cachedErrors.Clear();
+            #if UNITY_EDITOR
             EditorApplication.RepaintHierarchyWindow();
+            #endif
         }
 
         public struct GameObjectError
@@ -120,7 +122,7 @@ namespace SeweralIdeas.UnityUtils
                         content = new GUIContent("", error.error);
                     else
                     {
-                        content = new GUIContent("", childHasErrors);
+                        content = new GUIContent("", ChildHasErrors);
                         GUI.color = new Color(1, 1, 1, 0.5f);
                     }
                     GUI.Label(errorRect, content, "CN EntryErrorIconSmall");
@@ -136,7 +138,7 @@ namespace SeweralIdeas.UnityUtils
                         content = new GUIContent("", error.warning);
                     else
                     {
-                        content = new GUIContent("", childHasWarnings);
+                        content = new GUIContent("", ChildHasWarnings);
                         GUI.color = new Color(1, 1, 1, 0.5f);
                     }
                     GUI.Label(errorRect, content, "CN EntryWarnIconSmall");
