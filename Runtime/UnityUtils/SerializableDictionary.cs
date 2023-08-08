@@ -55,7 +55,11 @@ namespace SeweralIdeas.UnityUtils
             m_dictDirty = false;
         }
 
-        public ReadonlyDictView<TKey, TVal> GetReadonlyView() => new(m_dict);
+        public ReadonlyDictView<TKey, TVal> GetReadonlyView()
+        {
+            EnsureDictUpToDate();
+            return new(m_dict);
+        }
 
         public int Count => m_dict.Count;
 
