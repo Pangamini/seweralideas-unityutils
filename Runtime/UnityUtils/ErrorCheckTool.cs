@@ -18,25 +18,15 @@ namespace SeweralIdeas.UnityUtils
 
         private const string ChildHasErrors = "Child has errors";
         private const string ChildHasWarnings = "Child has warnings";
-
-        private static readonly Dictionary<GameObject, GameObjectError> s_cachedErrors = new Dictionary<GameObject, GameObjectError>();
-
+        
 #if UNITY_EDITOR
         static ErrorCheckTool()
         {
             EditorApplication.hierarchyWindowItemOnGUI += DrawHierarchyGUI;
-            EditorApplication.hierarchyChanged += ClearErrorCache;
+            // EditorApplication.hierarchyChanged += EditorApplication.RepaintHierarchyWindow;
         }
 #endif
-
-        public static void ClearErrorCache()
-        {
-            s_cachedErrors.Clear();
-            #if UNITY_EDITOR
-            EditorApplication.RepaintHierarchyWindow();
-            #endif
-        }
-
+        
         public struct GameObjectError
         {
             public GameObject gameObject;
@@ -63,9 +53,7 @@ namespace SeweralIdeas.UnityUtils
         public static GameObjectError ValidateGameObject(GameObject go)
         {
             GameObjectError error;
-            if (s_cachedErrors.TryGetValue(go, out error))
-                return error;
-            
+
             error = new GameObjectError();
             error.gameObject = go;
 
@@ -98,7 +86,6 @@ namespace SeweralIdeas.UnityUtils
                 }
             }
 
-            s_cachedErrors.Add(go, error);
             return error;
         }
 
