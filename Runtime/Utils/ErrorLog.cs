@@ -5,6 +5,14 @@ namespace SeweralIdeas.Utils
 {
     public struct ErrorLog
     {
+        private const string Indent = "  ";
+
+        private static void AppendIndent(StringBuilder sb, int level)
+        {
+            for( int i = 0; i < level; ++i )
+                sb.Append(Indent);
+        }
+        
         public void Clear()
         {
             m_string = string.Empty;
@@ -23,10 +31,12 @@ namespace SeweralIdeas.Utils
 
         public void AddError(string error, ErrorLog sceneLog)
         {
+            if(sceneLog.IsEmpty)
+                return;
             AddError(new Error(error, sceneLog));
         }
 
-        public void AddError(Error error)
+        private void AddError(Error error)
         {
             if(m_errors == null)
                 m_errors = new();
@@ -68,7 +78,7 @@ namespace SeweralIdeas.Utils
         {
             if(m_errors == null)
             {
-                sb.Append('\t', indentLevel);
+                AppendIndent(sb, indentLevel);
                 sb.AppendLine("No errors");
             }
 
@@ -77,7 +87,7 @@ namespace SeweralIdeas.Utils
                 for( int i = 0; i < m_errors.Count; i++ )
                 {
                     Error error = m_errors[i];
-                    sb.Append('\t', indentLevel);
+                    AppendIndent(sb, indentLevel);
                     sb.AppendLine($"[{i}]: {error.Text}");
                     if(!error.ChildLog.IsEmpty)
                     {
