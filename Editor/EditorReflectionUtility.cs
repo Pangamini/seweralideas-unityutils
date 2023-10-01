@@ -70,6 +70,13 @@ namespace SeweralIdeas.UnityUtils.Editor
                     else
                     {
                         fi = GetFieldOrProperty(o.GetType(), pathSplit[i]);
+
+                        if(!fi.HasValue)
+                        {
+                            result.Add(default);    // TODO somehow report that this value is invalid
+                            break;
+                        }
+                        
                         o = fi.Value.GetValue(o);
                     }
                 }
