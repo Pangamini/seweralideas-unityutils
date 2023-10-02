@@ -2,17 +2,16 @@
 
 namespace SeweralIdeas.Utils
 {
-    [System.Serializable]
+    [Serializable]
     public class Reactive<T>
     {
-        public readonly Readonly readOnly;
+        public Readonly ReadOnly =>  new Readonly(this);
         private T m_value;
         private Action<T> m_onChanged;
 
         public Reactive(T defaultValue = default)
         {
             m_value = defaultValue;
-            readOnly = new Readonly(this);
         }
 
         public T Value
@@ -59,6 +58,8 @@ namespace SeweralIdeas.Utils
                     m_reactive.Changed -= value;
                 }
             }
+
+            public static implicit operator Readonly(Reactive<T> reactive) => reactive.ReadOnly;
         }
     }
 
