@@ -9,6 +9,23 @@ namespace SeweralIdeas.UnityUtils
 {
     public static class UnityExtensions
     {
+        public static bool ClampScreenPointToRectTransform(this RectTransform rectTransform, ref Vector2 screenPoint)
+        {
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, null, out var localPoint);
+            Rect boundsRect = rectTransform.rect;
+            var normalized = Rect.PointToNormalized(boundsRect, localPoint);
+            var boundLocalPoint = Rect.NormalizedToPoint(boundsRect, normalized);
+            var boundWorldPoint = rectTransform.TransformPoint(boundLocalPoint);
+            var boundScreenPoint = Vector2Int.FloorToInt(RectTransformUtility.WorldToScreenPoint(null, boundWorldPoint));
+
+            if(boundScreenPoint != screenPoint)
+            {
+                screenPoint = boundScreenPoint;
+                return true;
+            }
+            return false;
+        }
+
         public static T FindObjectOfType<T>(this UnityEngine.SceneManagement.Scene scene) where T:class
         {
             using (ListPool<GameObject>.Get(out var list))
