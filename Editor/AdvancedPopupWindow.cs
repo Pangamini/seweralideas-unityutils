@@ -19,6 +19,8 @@ namespace SeweralIdeas.UnityUtils.Editor
         private Action<int> m_onElemClick;
         private static int s_responseControlID;
         private static int s_responseResult;
+        private static GUIStyle s_searchText;
+        private static GUIStyle s_searchCancel;
 
         public static void ShowWindow(int controlID, Rect buttonRect, int index, IList<GUIContent> options, bool searchBar, GUIStyle elementStye = null,
             Action<int> onElemClick = null)
@@ -62,6 +64,12 @@ namespace SeweralIdeas.UnityUtils.Editor
 
         private void OnGUI()
         {
+            if(s_searchText == null)
+            {
+                s_searchText = (GUIStyle)"ToolbarSearchTextField";
+                s_searchCancel = (GUIStyle)"ToolbarSearchCancelButton";
+            }
+            
             GUILayout.BeginVertical("box");
 
             if (m_searchBar)
@@ -70,8 +78,8 @@ namespace SeweralIdeas.UnityUtils.Editor
                 GUILayout.BeginHorizontal("Toolbar");
 
                 GUI.SetNextControlName("SearchBar");
-                m_search = EditorGUILayout.TextField(GUIContent.none, m_search, "ToolbarSeachTextField", GUILayout.ExpandWidth(true));
-                if (GUILayout.Button("", "ToolbarSeachCancelButton"))
+                m_search = EditorGUILayout.TextField(GUIContent.none, m_search, s_searchText, GUILayout.ExpandWidth(true));
+                if (GUILayout.Button("", s_searchCancel))
                     m_search = "";
 
                 GUILayout.FlexibleSpace();
