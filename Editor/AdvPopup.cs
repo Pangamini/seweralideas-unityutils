@@ -63,7 +63,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             if (EditorGUI.DropdownButton(rect, innerText, FocusType.Keyboard, style))
             {
                 var scrRect = new Rect(GUIUtility.GUIToScreenPoint(rect.position), rect.size);
-                AdvancedPopupWindow.ShowWindow(id, scrRect, index, options, searchBar);
+                AdvancedPopupWindow.ShowWindow(id, scrRect, options, searchBar);
             }
 
             int response;
