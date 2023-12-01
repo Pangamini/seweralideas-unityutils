@@ -22,7 +22,14 @@ namespace SeweralIdeas.UnityUtils.Editor
         private static GUIStyle s_searchText;
         private static GUIStyle s_searchCancel;
 
-        public static void ShowWindow(int controlID, Rect buttonRect, int index, IList<GUIContent> options, bool searchBar, GUIStyle elementStye = null,
+        public static void ShowWindow(Rect position, IList<GUIContent> options, bool searchBar, GUIStyle elementStye = null, Action<int> onElemClick = null)
+        {
+            Rect scrRect = new Rect(GUIUtility.GUIToScreenPoint(position.position), new Vector2(256, position.height));
+            int controlId = GUIUtility.GetControlID(FocusType.Passive, position);
+            ShowWindow(controlId, scrRect, options, true,null, onElemClick);
+        }
+        
+        public static void ShowWindow(int controlID, Rect screenRect, IList<GUIContent> options, bool searchBar, GUIStyle elementStye = null,
             Action<int> onElemClick = null)
         {
             if (elementStye == null)
@@ -41,9 +48,9 @@ namespace SeweralIdeas.UnityUtils.Editor
 
             scrollWidth += 32;
 
-            var size = new Vector2(Mathf.Max(scrollWidth, buttonRect.width), 256);
+            var size = new Vector2(Mathf.Max(scrollWidth, screenRect.width), 256);
             var window = CreateInstance<AdvancedPopupWindow>();
-            window.ShowAsDropDown(buttonRect, size);
+            window.ShowAsDropDown(screenRect, size);
 
             window.m_options = options;
             window.m_controlID = controlID;

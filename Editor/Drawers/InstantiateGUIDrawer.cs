@@ -60,7 +60,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
                     List<GUIContent> options = new();
                     foreach (Type type in typeList.types)
                     {
-                        options.Add(new GUIContent(type.Name));
+                        options.Add(new GUIContent(type.Name, HierarchyIcons.GetTexture(type)));
                     }
 
                     Action<int> onKeySelected = (selectedIndex) =>
@@ -70,7 +70,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
                     };
 
                     var scrRect = new Rect(GUIUtility.GUIToScreenPoint(buttonRect.position), new Vector2(256, buttonRect.height));
-                    AdvancedPopupWindow.ShowWindow(controlId, scrRect, 0, options, true, null, onKeySelected);
+                    AdvancedPopupWindow.ShowWindow(controlId, scrRect, options, true, null, onKeySelected);
                 }
             }
 
