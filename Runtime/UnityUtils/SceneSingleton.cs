@@ -28,7 +28,7 @@ namespace SeweralIdeas.UnityUtils
         }
 
 
-        protected virtual void Awake()
+        protected void Awake()
         {
             var key = gameObject.scene;
             if (s_instances.TryGetValue(key, out T instance))
@@ -40,14 +40,26 @@ namespace SeweralIdeas.UnityUtils
             }
             else
                 s_instances.Add(key, (T)this);
+
+            OnAwake();
         }
 
+        protected virtual void OnAwake() { }
+        protected virtual void OnDestroyed() { }
 
-        protected virtual void OnDestroy()
+
+        protected void OnDestroy()
         {
-            if (s_instances.TryGetValue(gameObject.scene, out T instance))
-                if (instance == this)
-                    s_instances.Remove(gameObject.scene);
+            try
+            {
+                OnDestroyed();
+            }
+            finally
+            {
+                if(s_instances.TryGetValue(gameObject.scene, out T instance))
+                    if(instance == this)
+                        s_instances.Remove(gameObject.scene);
+            }
         }
 
     }
