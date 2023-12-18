@@ -114,7 +114,10 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
-        void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            m_list.Sort((lhs, rhs) => string.Compare(lhs.name, rhs.name, StringComparison.Ordinal));
+        }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
 
