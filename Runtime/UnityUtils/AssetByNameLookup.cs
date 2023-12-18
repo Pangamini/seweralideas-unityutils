@@ -26,6 +26,27 @@ namespace SeweralIdeas.UnityUtils
         [NonSerialized] private bool m_dictDirty;
 
         private readonly Dictionary<string, T> m_dict = new();
+
+        public void Clear()
+        {
+            m_list.Clear();
+            m_dict.Clear();
+            m_dictDirty = false;
+        }
+
+        public void Add(T asset)
+        {
+            m_list.Add(asset);
+            m_dictDirty = true;
+        }
+        
+        public void Remove(T asset)
+        {
+            if (m_list.Remove(asset))
+            {
+                m_dictDirty = true;
+            }
+        }
         
         private void EnsureDictUpToDate()
         {
@@ -93,7 +114,10 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
-        void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+            m_list.Sort((lhs, rhs) => string.Compare(lhs.name, rhs.name, StringComparison.Ordinal));
+        }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
 
