@@ -73,6 +73,8 @@ namespace SeweralIdeas.UnityUtils
                 obj.GetComponents(components);
                 foreach (var comp in components)
                 {
+                    if(!comp)
+                        continue;
                     if(comp.GetType().GetCustomAttribute<HierarchyIconAttribute>() != null)
                     {
                         type = comp.GetType();
