@@ -26,7 +26,7 @@ namespace SeweralIdeas.UnityUtils.Editor
         {
             Rect scrRect = new Rect(GUIUtility.GUIToScreenPoint(position.position), new Vector2(256, position.height));
             int controlId = GUIUtility.GetControlID(FocusType.Passive, position);
-            ShowWindow(controlId, scrRect, options, true,null, onElemClick);
+            ShowWindow(controlId, scrRect, options, searchBar,elementStye, onElemClick);
         }
         
         public static void ShowWindow(int controlID, Rect screenRect, IList<GUIContent> options, bool searchBar, GUIStyle elementStye = null,
