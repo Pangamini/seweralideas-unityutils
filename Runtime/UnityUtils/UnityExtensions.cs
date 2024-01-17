@@ -41,7 +41,7 @@ namespace SeweralIdeas.UnityUtils
             return null;
         }
 
-        public static void FindObjectsOfType<T>(this UnityEngine.SceneManagement.Scene scene, List<T> result) where T:class
+        public static void FindObjectsOfType<T>(this UnityEngine.SceneManagement.Scene scene, List<T> result, bool includeInactive = false) where T:class
         {
             result.Clear();
             var compList = new List<T>();   // IL2CPP AOT would fail with StackAlloc
@@ -51,8 +51,11 @@ namespace SeweralIdeas.UnityUtils
                 scene.GetRootGameObjects(goList);
                 foreach (var go in goList)
                 {
+                    if(!includeInactive && !go.activeInHierarchy)
+                        continue;
+                    
                     compList.Clear();
-                    go.GetComponentsInChildren(compList);
+                    go.GetComponentsInChildren(includeInactive, compList);
                     result.AddList(compList);
                 }
             }
