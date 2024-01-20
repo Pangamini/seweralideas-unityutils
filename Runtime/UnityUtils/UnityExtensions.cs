@@ -193,19 +193,23 @@ namespace SeweralIdeas.UnityUtils
                 }
             }
         }
-        
+
         /// <summary>
         /// Similar to GetComponentsInChildren, but stops entering children with a TBlock component.
         /// NOTE that the target collection is NOT cleared.
         /// </summary>
         /// <param name="gameObject"></param>
         /// <param name="result"></param>
+        /// <param name="ignoreInactive"></param>
         /// <typeparam name="TComp"></typeparam>
         /// <typeparam name="TBlock"></typeparam>
-        public static void GetComponentsInChildrenRecursively<TComp, TBlock>(this GameObject gameObject, ICollection<TComp> result)
+        public static void GetComponentsInChildrenRecursively<TComp, TBlock>(this GameObject gameObject, ICollection<TComp> result, bool ignoreInactive = false)
             where TComp : Component
             where TBlock : Component
         {
+            if(ignoreInactive && !gameObject.activeInHierarchy)
+                return;
+            
             using (ListPool<TComp>.Get(out var thisGoComps))
             {
                 gameObject.GetComponents(thisGoComps);
@@ -223,7 +227,7 @@ namespace SeweralIdeas.UnityUtils
                 if(child.GetComponent<TBlock>() != null)
                     continue;   // skip child that has TBlock
 
-                GetComponentsInChildrenRecursively<TComp, TBlock>(child, result);
+                GetComponentsInChildrenRecursively<TComp, TBlock>(child, result, ignoreInactive);
             }
         }
     }
