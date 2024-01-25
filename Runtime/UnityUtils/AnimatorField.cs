@@ -38,12 +38,12 @@ namespace SeweralIdeas.UnityUtils
             m_hash = Animator.StringToHash(fieldName);
         }
 
-        public bool GetValue(Animator animator)
+        public readonly bool GetValue(Animator animator)
         {
             return animator.GetBool(m_hash);
         }
 
-        public void SetValue(Animator animator, bool value)
+        public readonly void SetValue(Animator animator, bool value)
         {
             animator.SetBool(m_hash, value);
         }
@@ -59,12 +59,12 @@ namespace SeweralIdeas.UnityUtils
             m_hash = Animator.StringToHash(fieldName);
         }
 
-        public float GetValue(Animator animator)
+        public readonly float GetValue(Animator animator)
         {
             return animator.GetFloat(m_hash);
         }
 
-        public void SetValue(Animator animator, float value)
+        public readonly void SetValue(Animator animator, float value)
         {
             animator.SetFloat(m_hash, value);
         }
@@ -80,12 +80,12 @@ namespace SeweralIdeas.UnityUtils
             m_hash = Animator.StringToHash(fieldName);
         }
 
-        public int GetValue(Animator animator)
+        public readonly int GetValue(Animator animator)
         {
             return animator.GetInteger(m_hash);
         }
 
-        public void SetValue(Animator animator, int value)
+        public readonly void SetValue(Animator animator, int value)
         {
             animator.SetInteger(m_hash, value);
         }
@@ -101,17 +101,17 @@ namespace SeweralIdeas.UnityUtils
             m_hash = Animator.StringToHash(fieldName);
         }
 
-        public void Trigger(Animator animator)
+        public readonly void Trigger(Animator animator)
         {
             animator.SetTrigger(m_hash);
         }
 
-        public bool GetValue(Animator animator)
+        public readonly bool GetValue(Animator animator)
         {
             return animator.GetBool(m_hash);
         }
 
-        public void Reset(Animator animator)
+        public readonly void Reset(Animator animator)
         {
             animator.ResetTrigger(m_hash);
         }
