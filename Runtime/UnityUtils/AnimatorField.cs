@@ -4,30 +4,21 @@ namespace SeweralIdeas.UnityUtils
 {
     public static class AnimatorFieldExtensions
     {
-        public static void SetValue(this Animator animator, AnimatorBool field, bool value)
-        {
-            field.SetValue(animator, value);
-        }
+        public static void SetValue(this Animator animator, AnimatorBool field, bool value) => field.SetValue(animator, value);
+        
+        public static bool GetValue(this Animator animator, AnimatorBool field) => field.GetValue(animator);
 
-        public static void SetValue(this Animator animator, AnimatorFloat field, float value)
-        {
-            field.SetValue(animator, value);
-        }
+        public static void SetValue(this Animator animator, AnimatorFloat field, float value) => field.SetValue(animator, value);
+        
+        public static float GetValue(this Animator animator, AnimatorFloat field) => field.GetValue(animator);
 
-        public static void SetValue(this Animator animator, AnimatorInt field, int value)
-        {
-            field.SetValue(animator, value);
-        }
+        public static void SetValue(this Animator animator, AnimatorInt field, int value) => field.SetValue(animator, value);
+        
+        public static int GetValue(this Animator animator, AnimatorInt field) => field.GetValue(animator);
 
-        public static void Trigger(this Animator animator, AnimatorTrigger field)
-        {
-            field.Trigger(animator);
-        }
+        public static void Trigger(this Animator animator, AnimatorTrigger field) => field.Trigger(animator);
 
-        public static void ResetTrigger(this Animator animator, AnimatorTrigger field)
-        {
-            field.Reset(animator);
-        }
+        public static void ResetTrigger(this Animator animator, AnimatorTrigger field) => field.Reset(animator);
     }
 
     public struct AnimatorBool
