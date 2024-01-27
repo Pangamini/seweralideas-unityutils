@@ -36,7 +36,9 @@ namespace SeweralIdeas.UnityUtils
             }
             else
             {
-                return handler.audioClip;
+                var clip = handler.audioClip;
+                clip.name = filePath;
+                return clip;
             }
         }
 
