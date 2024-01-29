@@ -116,7 +116,8 @@ namespace SeweralIdeas.UnityUtils
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
-            m_list.Sort((lhs, rhs) => string.Compare(lhs.name, rhs.name, StringComparison.Ordinal));
+            if(m_list != null)
+                m_list.Sort((lhs, rhs) => string.Compare(lhs?lhs.name:null, rhs?rhs.name:null, StringComparison.Ordinal));
         }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
