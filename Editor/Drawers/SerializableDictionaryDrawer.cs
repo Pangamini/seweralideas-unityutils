@@ -112,7 +112,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             var oldWidth = EditorGUIUtility.labelWidth;
             EditorGUIUtility.labelWidth = 22;
             EditorGUI.PropertyField(keyRect, key, s_content_key);
-            EditorGUI.PropertyField(valueRect, value, s_content_val);
+            EditorGUI.PropertyField(valueRect, value, s_content_val, true);
             EditorGUIUtility.labelWidth = oldWidth;
         }
     }
