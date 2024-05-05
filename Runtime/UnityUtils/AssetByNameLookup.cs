@@ -22,7 +22,7 @@ namespace SeweralIdeas.UnityUtils
     [Serializable]
     public class AssetByNameTable<T> : AssetByNameTable, ISerializationCallbackReceiver, IReadOnlyDictionary<string, T> where T:UnityEngine.Object
     {
-        [SerializeField] private List<T> m_list;
+        [SerializeField] private List<T> m_list = new();
         [NonSerialized] private bool m_dictDirty;
 
         private readonly Dictionary<string, T> m_dict = new();
