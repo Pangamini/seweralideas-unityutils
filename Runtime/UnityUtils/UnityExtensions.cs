@@ -230,5 +230,31 @@ namespace SeweralIdeas.UnityUtils
                 GetComponentsInChildrenRecursively<TComp, TBlock>(child, result, ignoreInactive);
             }
         }
+        
+        public static Rect GetAspectFittedRect(this Rect outerRect, float aspectRatio)
+        {
+            // Calculate the width and height of the inner rect
+            float innerWidth = outerRect.width;
+            float innerHeight = outerRect.height;
+        
+            // Check if the aspect ratio of the inner rect needs to be adjusted
+            if (innerWidth / innerHeight > aspectRatio)
+            {
+                // Inner rect is too wide, adjust its height
+                innerWidth = innerHeight * aspectRatio;
+            }
+            else
+            {
+                // Inner rect is too tall, adjust its width
+                innerHeight = innerWidth / aspectRatio;
+            }
+
+            // Calculate the position of the inner rect to center it within the outer rect
+            float innerX = outerRect.x + (outerRect.width - innerWidth) * 0.5f;
+            float innerY = outerRect.y + (outerRect.height - innerHeight) * 0.5f;
+
+            // Create and return the inner rect
+            return new Rect(innerX, innerY, innerWidth, innerHeight);
+        }
     }
 }
