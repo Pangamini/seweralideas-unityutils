@@ -51,7 +51,7 @@ namespace SeweralIdeas.Collections
             void Clear();
         }
         
-        private class MySet<TElem> : Set<TElem>, IMySet
+        private class MyObservableObservableSet<TElem> : ObservableSet<TElem>, IMySet
         {
             public void TryAdd(T elem)
             {
@@ -66,14 +66,14 @@ namespace SeweralIdeas.Collections
             }
         }
 
-        public ReadonlySet<TType> GetObjectsByType<TType>()
+        public ReadonlyObservableSet<TType> GetObjectsByType<TType>()
         {
             if (m_objectsByType.TryGetValue(typeof(TType), out IMySet set))
             {
-                return ((Set<TType>)set).GetReadonly();
+                return ((ObservableSet<TType>)set).GetReadonly();
             }
             
-            var mySet = new MySet<TType>();
+            var mySet = new MyObservableObservableSet<TType>();
             set = mySet;
 
             foreach(var obj in m_externalCollection)
@@ -83,7 +83,7 @@ namespace SeweralIdeas.Collections
             }
            
             m_objectsByType.Add(typeof(TType), set);
-            return ((Set<TType>)set).GetReadonly();
+            return ((ObservableSet<TType>)set).GetReadonly();
         }
 
         public void Clear()
@@ -105,7 +105,7 @@ namespace SeweralIdeas.Collections
             m_lookupDatabase = lookupDatabase;
         }
 
-        public ReadonlySet<TType> GetObjectsByType<TType>() => m_lookupDatabase.GetObjectsByType<TType>();
+        public ReadonlyObservableSet<TType> GetObjectsByType<TType>() => m_lookupDatabase.GetObjectsByType<TType>();
     }
 
 

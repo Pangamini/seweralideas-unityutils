@@ -19,34 +19,41 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public interface ISet
+    public interface IObservableSet : IReadonlyObservableSet
     {
-        System.Type GetContainedType();
     }
 
-    public interface IReadonlySet
+    public interface IReadonlyObservableSet
     {
-        System.Type GetContainedType();
+        Type GetContainedType();
+        
+        int Count { get; }
     }
 
-    public class Set<T> : ICollection<T>, ISet
+    public interface IObservableSet<T> : IObservableSet, IReadonlyObservableSet<T> { }
+
+    public interface IReadonlyObservableSet<T> : IReadonlyObservableSet
+    {
+        public event Action<T> Added;
+        public event Action<T> Removed;
+        public bool Contains(T element);
+    }
+
+    public class ObservableSet<T> : ICollection<T>, IObservableSet<T>
     {
         private HashSet<T> m_set = new HashSet<T>();
-        public event System.Action<T> Added;
-        public event System.Action<T> Removed;
-        private ReadonlySet<T> m_readonly;
+        public event Action<T> Added;
+        public event Action<T> Removed;
+        private readonly ReadonlyObservableSet<T> m_readonlyObservableSet;
 
-        public Set()
+        public ObservableSet()
         {
-            m_readonly = new ReadonlySet<T>(this);
+            m_readonlyObservableSet = new ReadonlyObservableSet<T>(this);
         }
 
         public int Count => m_set.Count;
 
-        System.Type ISet.GetContainedType()
-        {
-            return typeof(T);
-        }
+        public Type GetContainedType() => typeof(T);
 
         public void Clear()
         {
@@ -87,9 +94,9 @@ namespace SeweralIdeas.Collections
             return m_set.Contains(obj);
         }
 
-        public ReadonlySet<T> GetReadonly()
+        public ReadonlyObservableSet<T> GetReadonly()
         {
-            return m_readonly;
+            return m_readonlyObservableSet;
         }
 
         public HashSet<T>.Enumerator GetEnumerator()
@@ -122,62 +129,39 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public class ReadonlySet<T> : IEnumerable<T>, IReadonlySet
+    public class ReadonlyObservableSet<T> : IEnumerable<T>, IReadonlyObservableSet
     {
-        private Set<T> m_set;
+        private readonly ObservableSet<T> m_observableObservableSet;
 
-        public ReadonlySet( Set<T> set )
+        public ReadonlyObservableSet( ObservableSet<T> observableObservableSet )
         {
-            if ( set == null )
-                throw new System.NullReferenceException("set cannot be null");
-            m_set = set;
+            m_observableObservableSet = observableObservableSet ?? throw new NullReferenceException("set cannot be null");
         }
 
-        public int Count
+        public int Count => m_observableObservableSet.Count;
+
+        public event Action<T> Added
         {
-            get { return m_set.Count; }
+            add => m_observableObservableSet.Added += value;
+            remove => m_observableObservableSet.Added -= value;
         }
 
-        public event System.Action<T> onAdded
+        public event Action<T> Removed
         {
-            add  { m_set.Added += value; }
-            remove { m_set.Added -= value;}
+            add => m_observableObservableSet.Removed += value;
+            remove => m_observableObservableSet.Removed -= value;
         }
 
-        public event System.Action<T> onRemoved
-        {
-            add { m_set.Removed += value; }
-            remove { m_set.Removed -= value; }
-        }
+        public bool Contains( T obj ) => m_observableObservableSet.Contains(obj);
 
-        public bool Contains( T obj )
-        {
-            return m_set.Contains(obj);
-        }
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)m_observableObservableSet).GetEnumerator();
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return ((IEnumerable<T>)m_set).GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)m_observableObservableSet).GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable<T>)m_set).GetEnumerator();
-        }
+        public HashSet<T>.Enumerator GetEnumerator() => m_observableObservableSet.GetEnumerator();
 
-        public HashSet<T>.Enumerator GetEnumerator()
-        {
-            return m_set.GetEnumerator();
-        }
+        Type IReadonlyObservableSet.GetContainedType() => typeof(T);
 
-        System.Type IReadonlySet.GetContainedType()
-        {
-            return typeof(T);
-        }
-
-        public void VisitAll(Action<T> visitor)
-        {
-            m_set.VisitAll(visitor);
-        }
+        public void VisitAll(Action<T> visitor) => m_observableObservableSet.VisitAll(visitor);
     }
 }

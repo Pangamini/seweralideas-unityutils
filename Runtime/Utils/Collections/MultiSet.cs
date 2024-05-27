@@ -16,11 +16,11 @@ namespace SeweralIdeas.Collections
     
 
     [System.Serializable]
-    public class MultiSet<T> : IEnumerable<T>, IMultiSet
+    public class MultiSet<T> : IEnumerable<T>, IMultiSet, IReadonlyObservableSet<T>
     {
         private Dictionary<T,uint> m_multiSet = new Dictionary<T,uint>();
-        public event Action<T> onAdded;
-        public event Action<T> onRemoved;
+        public event Action<T> Added;
+        public event Action<T> Removed;
         private ReadonlyMultiSet<T> m_readonly;
 
         public override string ToString()
@@ -60,15 +60,9 @@ namespace SeweralIdeas.Collections
             m_readonly = new ReadonlyMultiSet<T>(this);
         }
 
-        public int Count
-        {
-            get { return m_multiSet.Count; }
-        }
-        
-        Type IMultiSet.GetContainedType()
-        {
-            return typeof(T);
-        }
+        public int Count => m_multiSet.Count;
+
+        public Type GetContainedType() => typeof(T);
 
         [NonSerialized]
         private bool m_clearing = false;
@@ -77,9 +71,9 @@ namespace SeweralIdeas.Collections
             m_clearing = true;
             try
             {
-                if (onRemoved != null)
+                if (Removed != null)
                     foreach (var obj in m_multiSet)
-                        onRemoved(obj.Key);
+                        Removed(obj.Key);
             }
             finally
             {
@@ -101,8 +95,7 @@ namespace SeweralIdeas.Collections
             if (!m_multiSet.ContainsKey(obj))
             {
                 m_multiSet.Add(obj, count);
-                if (onAdded != null)
-                    onAdded(obj);
+                Added?.Invoke(obj);
                 return true;
             }
 
@@ -125,10 +118,11 @@ namespace SeweralIdeas.Collections
             {
                 if ( count >= value )
                 {
-                    var ret = m_multiSet.Remove(obj);
+                    bool ret = m_multiSet.Remove(obj);
                     if ( ret )
-                        if ( onRemoved != null )
-                            onRemoved(obj);
+                    {
+                        Removed?.Invoke(obj);
+                    }
 
                     return true;
                 }
@@ -170,7 +164,7 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public class ReadonlyMultiSet<T> : IEnumerable<T>
+    public class ReadonlyMultiSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>
     {
         private MultiSet<T> m_set;
 
@@ -181,25 +175,24 @@ namespace SeweralIdeas.Collections
             m_set = set;
         }
 
-        public int Count
-        {
-            get { return m_set.Count; }
-        }      
+        public Type GetContainedType() => typeof( T );
+        
+        public int Count => m_set.Count;
 
         public uint GetValue(T t) {
             return m_set.GetCount(t);
         }
 
-        public event Action<T> onAdded
+        public event Action<T> Added
         {
-            add { m_set.onAdded += value; }
-            remove { m_set.onAdded -= value; }
+            add => m_set.Added += value;
+            remove => m_set.Added -= value;
         }
 
-        public event Action<T> onRemoved
+        public event Action<T> Removed
         {
-            add { m_set.onRemoved += value; }
-            remove { m_set.onRemoved -= value; }
+            add => m_set.Removed += value;
+            remove => m_set.Removed -= value;
         }
         
 

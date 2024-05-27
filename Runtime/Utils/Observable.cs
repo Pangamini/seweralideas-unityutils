@@ -1,15 +1,21 @@
 ﻿using System;
+#if UNITY_5_3_OR_NEWER
+using UnityEngine;
+#endif
 
 namespace SeweralIdeas.Utils
 {
     [Serializable]
-    public class Reactive<T>
+    public class Observable<T>
     {
         public Readonly ReadOnly =>  new Readonly(this);
+        #if UNITY_5_3_OR_NEWER
+        [SerializeField]
+        #endif
         private T m_value;
         private Action<T> m_onChanged;
 
-        public Reactive(T defaultValue = default)
+        public Observable(T defaultValue = default)
         {
             m_value = defaultValue;
         }
@@ -39,27 +45,27 @@ namespace SeweralIdeas.Utils
 
         public struct Readonly
         {
-            public Readonly(Reactive<T> reactive)
+            public Readonly(Observable<T> observable)
             {
-                m_reactive = reactive;
+                m_observable = observable;
             }
 
-            private Reactive<T> m_reactive;
-            public T Value => m_reactive.Value;
+            private Observable<T> m_observable;
+            public T Value => m_observable.Value;
 
             public event Action<T> Changed
             {
                 add
                 {
-                    m_reactive.Changed += value;
+                    m_observable.Changed += value;
                 }
                 remove
                 {
-                    m_reactive.Changed -= value;
+                    m_observable.Changed -= value;
                 }
             }
 
-            public static implicit operator Readonly(Reactive<T> reactive) => reactive.ReadOnly;
+            public static implicit operator Readonly(Observable<T> observable) => observable.ReadOnly;
         }
     }
 
