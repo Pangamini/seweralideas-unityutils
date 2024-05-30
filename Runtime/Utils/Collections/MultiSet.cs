@@ -108,7 +108,15 @@ namespace SeweralIdeas.Collections
         {
             return Remove(obj, 1);
         }
-
+        
+        public void RemoveAll(T obj)
+        {
+            if (m_multiSet.Remove(obj))
+            {
+                Removed?.Invoke(obj);
+            }
+        }
+        
         public bool Remove(T obj, uint count)
         {
             if (m_clearing)
@@ -159,9 +167,11 @@ namespace SeweralIdeas.Collections
             return m_multiSet.Keys.GetEnumerator();
         }
 
-        public uint GetCount(T t) {
+        public uint GetCount(T t) 
+        {
             return m_multiSet[t];
         }
+        
     }
 
     public class ReadonlyMultiSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>

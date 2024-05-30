@@ -20,7 +20,7 @@ public class Detector<TObj, TBase> : MonoBehaviour, IDetector
 
     public Detector()
     {
-        m_onActorDestroyed = (obj) => m_actorsInside.Remove((TObj)obj);
+        m_onActorDestroyed = (obj) => m_actorsInside.RemoveAll((TObj)obj);
     }
 
     protected virtual bool Filter(TObj obj) => true;
@@ -52,7 +52,11 @@ public class Detector<TObj, TBase> : MonoBehaviour, IDetector
 
     private void OnRemoved(TObj obj)
     {
-        var removedGo = (obj as Component)!.gameObject;
+        // cast so we can use unity's equality operator
+        Component component = obj as Component;
+        if (component == null)
+            return;
+        var removedGo = component.gameObject;
         removedGo.UnsubscribeFromDestroy(m_onActorDestroyed, obj);
     }
 
