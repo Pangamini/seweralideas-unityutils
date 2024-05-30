@@ -2,16 +2,17 @@ using System;
 using System.Collections.Generic;
 using SeweralIdeas.Pooling;
 using SeweralIdeas.Utils;
+using Unity.Collections;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
 {
     public class OnDestroyListener : MonoBehaviour
     {
-        private readonly HashSet<(Action<object>, object)> m_callbackSet = new ();
+        private readonly List<(Action<object>, object)> m_callbackSet = new ();
 
         public void AddListener(Action<object> callback, object argument) => m_callbackSet.Add((callback, argument));
-        public void RemoveListener(Action<object> callback, object argument) => m_callbackSet.Remove((callback, argument));
+        public void RemoveListener(Action<object> callback, object argument) => m_callbackSet.RemoveSwapBack((callback, argument));
         
         protected void OnDestroy()
         {
@@ -19,7 +20,7 @@ namespace SeweralIdeas.UnityUtils
             {
                 while(m_callbackSet.Count > 0)
                 {
-                    cbackList.AddSet(m_callbackSet);
+                    cbackList.AddList(m_callbackSet);
                     m_callbackSet.Clear();
                     foreach (var cbackPair in cbackList)
                     {
