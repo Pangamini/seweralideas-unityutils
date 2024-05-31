@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SeweralIdeas.Collections;
 using SeweralIdeas.Pooling;
 using SeweralIdeas.Utils;
 using Unity.Collections;
@@ -12,7 +13,7 @@ namespace SeweralIdeas.UnityUtils
         private readonly List<(Action<object>, object)> m_callbackSet = new ();
 
         public void AddListener(Action<object> callback, object argument) => m_callbackSet.Add((callback, argument));
-        public void RemoveListener(Action<object> callback, object argument) => m_callbackSet.RemoveSwapBack((callback, argument));
+        public void RemoveListener(Action<object> callback, object argument) => m_callbackSet.RemoveBySwap((callback, argument));
         
         protected void OnDestroy()
         {

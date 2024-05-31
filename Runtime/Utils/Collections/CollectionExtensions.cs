@@ -4,6 +4,22 @@ namespace SeweralIdeas.Collections
 {
     public static class CollectionExtensions
     {
+        public static void RemoveBySwap<T>(this List<T> list, int index)
+        {
+            int lastId = list.Count - 1;
+            list[index] = list[lastId];
+            list.RemoveAt(lastId);
+        }
+        
+        public static bool RemoveBySwap<T>(this List<T> list, T item)
+        {
+            int index = list.IndexOf(item);
+            if(index < 0)
+                return false;
+            list.RemoveBySwap(index);
+            return true;
+        }
+        
         public static bool ContentEquals<T>(List<T> lhs, List<T> rhs)
         {
             //first, compare for equality
