@@ -12,10 +12,10 @@ namespace SeweralIdeas.UnityUtils
             return Random.Range(m_pitchRange.x, m_pitchRange.y);
         }
 
-        public void PlayOneShot(AudioSource source)
+        public void PlayOneShot(AudioSource source, float volume = 1)
         {
             source.pitch = PickRandomPitch();
-            source.PlayOneShot(PickRandom());
+            source.PlayOneShot(PickRandom(), volume);
         }
     }
 }
