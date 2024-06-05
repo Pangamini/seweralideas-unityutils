@@ -23,6 +23,6 @@ namespace SeweralIdeas.UnityUtils
             Tween = null;
         }
         
-        protected virtual void OnValueChanged(float t) { }
+        protected virtual void OnValueChanged(float progress) { }
     }
 }

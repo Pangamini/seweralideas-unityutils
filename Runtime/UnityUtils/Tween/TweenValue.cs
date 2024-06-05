@@ -29,11 +29,11 @@ namespace SeweralIdeas.UnityUtils
         public T OffValue => m_offValue;
         public T OnValue => m_onValue;
 
-        protected override sealed void OnValueChanged(float t)
+        protected override sealed void OnValueChanged(float progress)
         {
-            T newValue = Interpolate(t);
+            T newValue = Interpolate(progress);
             m_onValueChanged.Invoke(newValue);
-            OnValueInterpolated(t, newValue);
+            OnValueInterpolated(progress, newValue);
         }
 
         protected abstract T Interpolate(float t);

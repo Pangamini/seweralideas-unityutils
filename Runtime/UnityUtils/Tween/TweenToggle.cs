@@ -54,14 +54,14 @@ namespace SeweralIdeas.UnityUtils
             remove => m_onFalse.RemoveListener(value);
         }
 
-        protected override void OnValueChanged(float value)
+        protected override void OnValueChanged(float progress)
         {
             bool newValue = m_operator switch
             {
-                Operator.Greater => value > m_rightValue,
-                Operator.Less => value < m_rightValue,
-                Operator.GreaterEqual => value >= m_rightValue,
-                Operator.LessEqual => value <= m_rightValue,
+                Operator.Greater => progress > m_rightValue,
+                Operator.Less => progress < m_rightValue,
+                Operator.GreaterEqual => progress >= m_rightValue,
+                Operator.LessEqual => progress <= m_rightValue,
                 _ => throw new IndexOutOfRangeException()
             };
 
