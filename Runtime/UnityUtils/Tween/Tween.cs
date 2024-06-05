@@ -9,8 +9,8 @@ namespace SeweralIdeas.UnityUtils
         private float m_value;
         private float m_velocity;
 
-        [SerializeField] private float m_smoothTime = 0.1f;
-        [SerializeField] private bool m_isOn;
+        [SerializeField] private float             m_smoothTime = 0.1f;
+        [SerializeField] private bool              m_isOn;
         [SerializeField] private UnityEvent<float> m_onValueChanged;
 
         public event UnityAction<float> ValueChanged
@@ -20,6 +20,12 @@ namespace SeweralIdeas.UnityUtils
         }
 
         public float Value => m_value;
+
+        public void SetValue(float newValue)
+        {
+            newValue = Mathf.Clamp01(newValue);
+            enabled = true;
+        }
 
         protected void OnValidate() => enabled = true;
 
