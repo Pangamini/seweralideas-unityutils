@@ -23,7 +23,7 @@ namespace SeweralIdeas.UnityUtils
 
         public void SetValue(float newValue)
         {
-            newValue = Mathf.Clamp01(newValue);
+            m_value = Mathf.Clamp01(newValue);
             enabled = true;
         }
 
@@ -47,6 +47,11 @@ namespace SeweralIdeas.UnityUtils
         void Awake()
         {
             m_value = IsOn ? 1 : 0;
+        }
+
+        private void OnEnable()
+        {
+            ApplyValue();
         }
 
         void Update()
