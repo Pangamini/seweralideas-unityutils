@@ -14,7 +14,7 @@ namespace SeweralIdeas.UnityUtils
         {
             Tween = GetComponent<Tween>();
             Tween.ValueChanged += OnValueChanged;
-            OnValueChanged(Tween.Value);
+            OnValueChanged(Tween.Progress);
         }
 
         protected void OnDestroy()
