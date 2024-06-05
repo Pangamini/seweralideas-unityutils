@@ -1,4 +1,5 @@
 using System;
+using SeweralIdeas.UnityUtils.Drawers;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -8,14 +9,26 @@ namespace SeweralIdeas.UnityUtils
     {
         private float m_progress;
 
-        [SerializeField] private float             m_smoothTime = 0.1f;
-        [SerializeField] private bool              m_isOn;
-        [SerializeField] private UnityEvent<float> m_onValueChanged;
-        [SerializeField] private AnimationCurve m_curve;
-        [SerializeField] private Mode m_mode;
+        [SerializeField] 
+        private bool m_isOn;
+        
+        [SerializeField] 
+        private Mode m_mode;
+        
+        [SerializeField]
+        private float m_smoothTime = 0.1f;
+        
+        [SerializeField]
+        [Condition(nameof(IsCurve))]
+        private AnimationCurve m_curve = AnimationCurve.EaseInOut(0,0,1,1);
+        
+        [SerializeField]
+        private UnityEvent<float> m_onValueChanged;
         
         private float m_velocity;
 
+        private bool IsCurve => m_mode == Mode.Curve;
+        
         public enum Mode
         {
             Simple,
@@ -31,9 +44,9 @@ namespace SeweralIdeas.UnityUtils
 
         public float Progress => m_progress;
 
-        public void SetValue(float newValue)
+        public void SetProgress(float newProgress)
         {
-            m_value = Mathf.Clamp01(newValue);
+            m_progress = Mathf.Clamp01(newProgress);
             enabled = true;
         }
 
@@ -95,7 +108,8 @@ namespace SeweralIdeas.UnityUtils
             {
                 Mode.Curve => m_curve.Evaluate(m_progress),
                 Mode.SmoothDamp => m_progress,
-                Mode.Simple => m_progress
+                Mode.Simple => m_progress,
+                _ => throw new ArgumentOutOfRangeException()
             };
             m_onValueChanged?.Invoke(value);
         }

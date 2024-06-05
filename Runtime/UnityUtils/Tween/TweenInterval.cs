@@ -1,19 +1,14 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using SeweralIdeas.Pooling;
 using UnityEngine;
 using UnityEngine.Events;
-
 namespace SeweralIdeas.UnityUtils
 {
-    public class TweenCurve : TweenComponent
+    public class TweenInterval : TweenComponent
     {
         [SerializeField]
         private UnityEvent<float> m_onValueChanged;
         
         [SerializeField]
-        private AnimationCurve m_curve;
+        private Vector2 m_interval = new Vector2(0,1);
         
         public event UnityAction<float> ValueChanged
         {
@@ -21,9 +16,9 @@ namespace SeweralIdeas.UnityUtils
             remove => m_onValueChanged.RemoveListener(value);
         }
         
-        protected override sealed void OnValueChanged(float t)
+        protected override sealed void OnValueChanged(float progress)
         {
-            float newValue = m_curve.Evaluate(t);
+            float newValue = Mathf.LerpUnclamped(m_interval.x, m_interval.y, progress);
             m_onValueChanged.Invoke(newValue);
         }
     }
