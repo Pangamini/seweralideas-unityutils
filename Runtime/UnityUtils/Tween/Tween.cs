@@ -8,8 +8,8 @@ namespace SeweralIdeas.UnityUtils
     {
         private float m_progress;
 
-        [SerializeField] private float m_smoothTime = 0.1f;
-        [SerializeField] private bool m_isOn;
+        [SerializeField] private float             m_smoothTime = 0.1f;
+        [SerializeField] private bool              m_isOn;
         [SerializeField] private UnityEvent<float> m_onValueChanged;
         [SerializeField] private AnimationCurve m_curve;
         [SerializeField] private Mode m_mode;
@@ -31,6 +31,12 @@ namespace SeweralIdeas.UnityUtils
 
         public float Progress => m_progress;
 
+        public void SetValue(float newValue)
+        {
+            m_value = Mathf.Clamp01(newValue);
+            enabled = true;
+        }
+
         protected void OnValidate() => enabled = true;
 
         protected void OnDidApplyAnimationProperties() => enabled = true;
@@ -48,9 +54,14 @@ namespace SeweralIdeas.UnityUtils
             }
         }
         
-        void Start()
+        void Awake()
         {
             m_progress = IsOn ? 1 : 0;
+        }
+
+        private void OnEnable()
+        {
+            ApplyValue();
         }
 
         void Update()
