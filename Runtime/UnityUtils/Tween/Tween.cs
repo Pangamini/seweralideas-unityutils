@@ -44,7 +44,7 @@ namespace SeweralIdeas.UnityUtils
             }
         }
         
-        void Start()
+        void Awake()
         {
             m_value = IsOn ? 1 : 0;
         }
