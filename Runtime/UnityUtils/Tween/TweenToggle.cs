@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using SeweralIdeas.UnityUtils;
 using UnityEngine;
 using UnityEngine.Events;
 

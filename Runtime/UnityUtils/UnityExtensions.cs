@@ -204,7 +204,7 @@ namespace SeweralIdeas.UnityUtils
         /// <typeparam name="TComp"></typeparam>
         /// <typeparam name="TBlock"></typeparam>
         public static void GetComponentsInChildrenRecursively<TComp, TBlock>(this GameObject gameObject, ICollection<TComp> result, bool ignoreInactive = false)
-            where TComp : Component
+            where TComp : class
             where TBlock : Component
         {
             if(ignoreInactive && !gameObject.activeInHierarchy)

@@ -10,6 +10,11 @@ public interface IDetector
     IEnumerable<object> GetObjectsInside();
 }
 
+public interface IHasDestroyCallback
+{
+    event Action<object> Destroyed;
+}
+
 public class Detector<TObj, TBase> : MonoBehaviour, IDetector
     where TBase : class
     where TObj : class, TBase
@@ -46,12 +51,24 @@ public class Detector<TObj, TBase> : MonoBehaviour, IDetector
     
     private void OnAdded(TObj obj)
     {
+        if(obj is IHasDestroyCallback hasDestroyCallback)
+        {
+            hasDestroyCallback.Destroyed += m_onActorDestroyed;
+            return;
+        }
+        
         var addedGo = (obj as Component)!.gameObject;
         addedGo.SubscribeToDestroy(m_onActorDestroyed, obj);
     }
 
     private void OnRemoved(TObj obj)
     {
+        if(obj is IHasDestroyCallback hasDestroyCallback)
+        {
+            hasDestroyCallback.Destroyed -= m_onActorDestroyed;
+            return;
+        }
+        
         // cast so we can use unity's equality operator
         Component component = obj as Component;
         if (component == null)
