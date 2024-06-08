@@ -10,7 +10,7 @@ public interface IDetector
     IEnumerable<object> GetObjectsInside();
 }
 
-public interface IHasDestroyCallback
+public interface IHasDestroyEvent
 {
     event Action<object> Destroyed;
 }
@@ -21,11 +21,11 @@ public class Detector<TObj, TBase> : MonoBehaviour, IDetector
 {
     private readonly MultiSet<TObj> m_actorsInside = new();
     public ReadonlyMultiSet<TObj> ActorsInside => m_actorsInside.GetReadonly();
-    private readonly Action<object> m_onActorDestroyed;
+    private readonly Action<object> m_onActorKilled;
 
     public Detector()
     {
-        m_onActorDestroyed = (obj) => m_actorsInside.RemoveAll((TObj)obj);
+        m_onActorKilled = (obj) => m_actorsInside.RemoveAll((TObj)obj);
     }
 
     protected virtual bool Filter(TObj obj) => true;
@@ -51,21 +51,21 @@ public class Detector<TObj, TBase> : MonoBehaviour, IDetector
     
     private void OnAdded(TObj obj)
     {
-        if(obj is IHasDestroyCallback hasDestroyCallback)
+        if(obj is IHasDestroyEvent hasDestroyCallback)
         {
-            hasDestroyCallback.Destroyed += m_onActorDestroyed;
+            hasDestroyCallback.Destroyed += m_onActorKilled;
             return;
         }
         
         var addedGo = (obj as Component)!.gameObject;
-        addedGo.SubscribeToDestroy(m_onActorDestroyed, obj);
+        addedGo.SubscribeToDestroy(m_onActorKilled, obj);
     }
 
     private void OnRemoved(TObj obj)
     {
-        if(obj is IHasDestroyCallback hasDestroyCallback)
+        if(obj is IHasDestroyEvent hasDestroyCallback)
         {
-            hasDestroyCallback.Destroyed -= m_onActorDestroyed;
+            hasDestroyCallback.Destroyed -= m_onActorKilled;
             return;
         }
         
@@ -74,7 +74,7 @@ public class Detector<TObj, TBase> : MonoBehaviour, IDetector
         if (component == null)
             return;
         var removedGo = component.gameObject;
-        removedGo.UnsubscribeFromDestroy(m_onActorDestroyed, obj);
+        removedGo.UnsubscribeFromDestroy(m_onActorKilled, obj);
     }
 
     

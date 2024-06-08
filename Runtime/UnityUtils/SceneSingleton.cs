@@ -7,7 +7,7 @@ namespace SeweralIdeas.UnityUtils
 {
     public class SceneSingleton<T> : MonoBehaviour where T : SceneSingleton<T>
     {
-        [SerializeField] private static Dictionary<Scene, T> s_instances = new Dictionary<Scene, T>();
+        private static readonly Dictionary<Scene, T> s_instances = new Dictionary<Scene, T>();
 
         public static T GetInstance(Scene scene)
         {
