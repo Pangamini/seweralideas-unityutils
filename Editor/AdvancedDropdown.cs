@@ -5,11 +5,11 @@ using UnityEditor;
 
 namespace SeweralIdeas.UnityUtils.Editor
 {
-    public static class AdvancedPopup
+    public static class AdvancedDropdown
     {
-        private static readonly int s_ButtonHint = "SeweralIdeas.UnityUtils.Editor.AdvancedPopup".GetHashCode();
+        private static readonly int s_buttonHint = "SeweralIdeas.UnityUtils.Editor.AdvancedDropdown".GetHashCode();
 
-        public static int LayoutPopup(GUIContent label, int index, IList<GUIContent> options, bool searchBar = true, bool usePrefixLabel = true,
+        public static int LayoutDropdown(GUIContent label, int index, IList<GUIContent> options, bool searchBar = true, bool usePrefixLabel = true,
             GUIStyle style = null, params GUILayoutOption[] layoutOptions)
         {
 
@@ -17,10 +17,10 @@ namespace SeweralIdeas.UnityUtils.Editor
                 style = "MiniPopup";
 
             var rect = GUILayoutUtility.GetRect(label, style, layoutOptions);
-            return Popup(rect, label, index, options, searchBar, usePrefixLabel, style);
+            return Dropdown(rect, label, index, options, searchBar, usePrefixLabel, style);
         }
 
-        public static int LayoutPopup(GUIContent label, int index, IList<string> options, bool searchBar = true, bool usePrefixLabel = true,
+        public static int LayoutDropdown(GUIContent label, int index, IList<string> options, bool searchBar = true, bool usePrefixLabel = true,
             GUIStyle style = null, params GUILayoutOption[] layoutOptions)
         {
 
@@ -28,10 +28,10 @@ namespace SeweralIdeas.UnityUtils.Editor
                 style = "MiniPopup";
 
             var rect = GUILayoutUtility.GetRect(label, style, layoutOptions);
-            return Popup(rect, label, index, options, searchBar, usePrefixLabel, style);
+            return Dropdown(rect, label, index, options, searchBar, usePrefixLabel, style);
         }
 
-        public static int Popup(Rect rect, GUIContent label, int index, IList<string> options, bool searchBar = true, bool usePrefixLabel = true,
+        public static int Dropdown(Rect rect, GUIContent label, int index, IList<string> options, bool searchBar = true, bool usePrefixLabel = true,
             GUIStyle style = null)
         {
             var optionsGui = new GUIContent[options.Count];
@@ -40,13 +40,13 @@ namespace SeweralIdeas.UnityUtils.Editor
             for (int i = 0; i < options.Count; ++i)
                 optionsGui[i] = new GUIContent(options[i]);
 
-            return Popup(rect, label, index, optionsGui, searchBar, usePrefixLabel, style);
+            return Dropdown(rect, label, index, optionsGui, searchBar, usePrefixLabel, style);
         }
 
-        public static int Popup(Rect rect, GUIContent label, int index, IList<GUIContent> options, bool searchBar = true, bool usePrefixLabel = true,
+        public static int Dropdown(Rect rect, GUIContent label, int index, IList<GUIContent> options, bool searchBar = true, bool usePrefixLabel = true,
             GUIStyle style = null)
         {
-            var id = GUIUtility.GetControlID(s_ButtonHint, FocusType.Passive, rect);
+            var id = GUIUtility.GetControlID(s_buttonHint, FocusType.Passive, rect);
             GUIContent innerText = GUIContent.none;
 
             if (usePrefixLabel)
@@ -63,11 +63,11 @@ namespace SeweralIdeas.UnityUtils.Editor
             if (EditorGUI.DropdownButton(rect, innerText, FocusType.Keyboard, style))
             {
                 var scrRect = new Rect(GUIUtility.GUIToScreenPoint(rect.position), rect.size);
-                AdvancedPopupWindow.ShowWindow(id, scrRect, options, searchBar);
+                AdvancedDropdownWindow.ShowWindow(id, scrRect, options, searchBar);
             }
 
             int response;
-            if (AdvancedPopupWindow.GetResponse(id, out response))
+            if (AdvancedDropdownWindow.GetResponse(id, out response))
             {
                 if (response != index)
                 {

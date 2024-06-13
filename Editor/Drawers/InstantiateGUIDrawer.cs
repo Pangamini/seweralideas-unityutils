@@ -51,29 +51,19 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
                 var myLabel = new GUIContent($"{label.text} ({attrib.BaseType.Name})");
                 EditorGUI.LabelField(position, myLabel, new GUIContent("null"));
 
+                Action<Type> onTypeSelected = type =>
+                {
+                    property.managedReferenceValue = Activator.CreateInstance(type);
+                    property.serializedObject.ApplyModifiedProperties();
+                };
+
                 if(GUI.Button(buttonRect, GUIContent.none, s_stylePlus))
                 {
-                    var controlId = GUIUtility.GetControlID(FocusType.Passive, buttonRect);
-
-                    TypeUtility.TypeList typeList = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(attrib.BaseType, false, true));
-
-                    List<GUIContent> options = new();
-                    foreach (Type type in typeList.types)
-                    {
-                        options.Add(new GUIContent(type.Name, HierarchyIcons.GetTexture(type)));
-                    }
-
-                    Action<int> onKeySelected = (selectedIndex) =>
-                    {
-                        property.managedReferenceValue = Activator.CreateInstance(typeList.types[selectedIndex]);
-                        property.serializedObject.ApplyModifiedProperties();
-                    };
-
-                    var scrRect = new Rect(GUIUtility.GUIToScreenPoint(buttonRect.position), new Vector2(256, buttonRect.height));
-                    AdvancedPopupWindow.ShowWindow(controlId, scrRect, options, true, null, onKeySelected);
+                    TypeUtility.TypeQuery typeQuery = new TypeUtility.TypeQuery(attrib.BaseType, false, true);
+                    TypeDropdown.ShowTypeDropdown(buttonRect, typeQuery, onTypeSelected);
                 }
             }
-
         }
+
     }
 }

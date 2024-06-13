@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils.Editor
 {
-    public class AdvancedPopupWindow : EditorWindow
+    public class AdvancedDropdownWindow : EditorWindow
     {
         private IList<GUIContent> m_options;
         private List<KeyValuePair<int, GUIContent>> m_filteredOptions = new List<KeyValuePair<int, GUIContent>>();
@@ -49,7 +49,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             scrollWidth += 32;
 
             var size = new Vector2(Mathf.Max(scrollWidth, screenRect.width), 256);
-            var window = CreateInstance<AdvancedPopupWindow>();
+            var window = CreateInstance<AdvancedDropdownWindow>();
             window.ShowAsDropDown(screenRect, size);
 
             window.m_options = options;
