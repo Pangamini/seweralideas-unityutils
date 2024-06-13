@@ -39,7 +39,7 @@ namespace SeweralIdeas.UnityUtils
                 state.Text = currentValue;
             }
 
-            bool enterPressed = (Event.current.type == EventType.KeyDown && Event.current.keyCode is KeyCode.Return or KeyCode.KeypadEnter);
+            bool enterPressed = (Event.current.type == EventType.KeyDown && Event.current.keyCode is KeyCode.Return or KeyCode.KeypadEnter && (Event.current.modifiers & EventModifiers.Shift) == 0);
             bool lostFocus = state.HasFocus && GUI.GetNameOfFocusedControl() != controlID.ToString();
 
             state.Text = guiFunc(position, state.Text);
