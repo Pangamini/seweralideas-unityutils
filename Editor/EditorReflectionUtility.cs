@@ -2,6 +2,8 @@
 using System.Reflection;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using SeweralIdeas.Pooling;
+using UnityEditor;
 
 namespace SeweralIdeas.UnityUtils.Editor
 {
@@ -37,6 +39,23 @@ namespace SeweralIdeas.UnityUtils.Editor
             return null;
         }
 
+        
+        public static string GetMultipleValueString(string path, Object[] objs)
+        {
+            string valueStr = null;
+            using (ListPool<object>.Get(out var values))
+            {
+                GetVariable(path, objs, values);
+                foreach (object value in values)
+                {
+                    string newValStr = value?.ToString() ?? "<null>";
+                    valueStr = (valueStr == null || valueStr == newValStr) ? newValStr : "-";
+                }
+
+            }
+            return valueStr;
+        }
+        
         public static void GetVariable<T>(string path, Object[] objs, List<T> result)
         {
             var pathSplit = path.Split('.');
