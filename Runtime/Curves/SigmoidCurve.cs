@@ -14,7 +14,8 @@ namespace SeweralIdeas.UnityUtils.Curves
 
         public float Evaluate(float input)
         {
-            return input * lin + yOffset + (mul / (1 + Mathf.Exp(exp*(input+xOffset))));
+            input += xOffset;
+            return input * lin + yOffset + mul / (1 + Mathf.Exp(exp*input));
         }
 
         public Vector2 GetValueMinMax(Vector2 range)
