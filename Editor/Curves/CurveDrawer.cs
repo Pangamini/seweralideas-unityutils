@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using SeweralIdeas.Pooling;
 using SeweralIdeas.UnityUtils.Editor;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils.Curves.Editor
@@ -42,11 +44,8 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             float height = EditorGUIUtility.singleLineHeight;
             if (property.isExpanded)
             {
-                foreach (SerializedProperty child in property)
-                {
-                    height += EditorGUI.GetPropertyHeight(child, true);
-                }
                 height += curveAttribute.displayHeight;
+                VisitChildren(property, (child) => height += EditorGUI.GetPropertyHeight(child, true));
             }
             return height;
         }
@@ -67,9 +66,23 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             }
         }
 
+        private void VisitChildren(SerializedProperty property, Action<SerializedProperty> visitor)
+        {
+            var iterator = property.Copy();
+            var stopAt = property.Copy();
+            stopAt.NextVisible(false);
+            bool first = true;
+            while(iterator.NextVisible(first))
+            {
+                if(iterator.propertyPath == stopAt.propertyPath)
+                    break;
+                first = false;
+                visitor(iterator);
+            }
+        }
+
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            HandleUtility.Repaint();
             var curveAttribute = (CurveAttribute)attribute;
             var foldoutRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
             
@@ -82,40 +95,47 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 var indented = EditorGUI.IndentedRect(position);
                 var curveRect = new Rect(indented.x, indented.yMax - curveAttribute.displayHeight, indented.width, curveAttribute.displayHeight);
                 var propertiesRect = new Rect(indented.x, foldoutRect.yMax, indented.width, indented.height - foldoutRect.height - curveRect.height);
-
-                if (Event.current.type == EventType.Repaint)
-                {
-                    using (ListPool<IRealCurve>.Get(out var curves))
-                    using (ListPool<float>.Get(out var currentValues))
-                    {
-                        EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, curves);
-                        
-                        if(!string.IsNullOrEmpty(curveAttribute.displayValue))
-                        {
-                            string displayValuePath = GetParentFieldPath(property.propertyPath, curveAttribute.displayValue);
-                            EditorReflectionUtility.GetVariable(displayValuePath, property.serializedObject.targetObjects, currentValues);
-                        }
-                        
-                        var xRange = new Vector2(curveAttribute.min, curveAttribute.max);
-                        
-                        string xFormat = curveAttribute.xFormat;
-                        string yFormat = curveAttribute.yFormat;
-                        
-                        CurveGUI(curveRect, curves, xRange, xFormat, yFormat, currentValues);
-                    }
-                }
-
+                
                 float childYpos = propertiesRect.y;
                 EditorGUI.indentLevel++;
-                foreach (SerializedProperty child in property)
+
+                VisitChildren(property, (iterator) =>
                 {
-                    float height = EditorGUI.GetPropertyHeight(child, true);
+                    float height = EditorGUI.GetPropertyHeight(iterator, true);
                     var propertyRect = new Rect(propertiesRect.x, childYpos, propertiesRect.width, height);
-                    EditorGUI.PropertyField(propertyRect, child, null, true);
+                    EditorGUI.PropertyField(propertyRect, iterator, null, true);
                     childYpos += height;
-                }
+                });
+                
+                DrawCurve(property, curveAttribute, curveRect);
                 
                 EditorGUI.indentLevel--;
+                
+                HandleUtility.Repaint();
+            }
+        }
+        private static void DrawCurve(SerializedProperty property, CurveAttribute curveAttribute, Rect curveRect)
+        {
+            if(Event.current.type != EventType.Repaint)
+                return;
+            
+            using (ListPool<IRealCurve>.Get(out var curves))
+            using (ListPool<float>.Get(out var currentValues))
+            {
+                EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, curves);
+
+                if(!string.IsNullOrEmpty(curveAttribute.displayValue))
+                {
+                    string displayValuePath = GetParentFieldPath(property.propertyPath, curveAttribute.displayValue);
+                    EditorReflectionUtility.GetVariable(displayValuePath, property.serializedObject.targetObjects, currentValues);
+                }
+
+                var xRange = new Vector2(curveAttribute.min, curveAttribute.max);
+
+                string xFormat = curveAttribute.xFormat;
+                string yFormat = curveAttribute.yFormat;
+
+                CurveGUI(curveRect, curves, xRange, xFormat, yFormat, currentValues);
             }
         }
 
@@ -176,12 +196,13 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
 
             if (curvePosition.Contains(Event.current.mousePosition))
             {
-                HandleUtility.Repaint();
+                // HandleUtility.Repaint();
                 DrawVerticalMouseLine(curvePosition, xRange, xFormat);
                 DrawMouseValues(curvePosition, curves, xRange, yRange, yFormat);
             }
 
             DrawLabels(curvePosition, xRange, yRange, xFormat, yFormat);
+            Handles.color = Color.white;
             return curvePosition;
         }
 
