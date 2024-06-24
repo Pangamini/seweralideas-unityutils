@@ -2,7 +2,16 @@ using System;
 using UnityEngine;
 namespace SeweralIdeas.UnityUtils
 {
-    public static partial class SeweralGUI
+    public static class SeweralGUILayout
+    {
+        public static string DelayedTextField(string currentValue)
+        {
+            var rect = GUILayoutUtility.GetRect(GUIContent.none, GUI.skin.textField);
+            return SeweralGUI.DelayedTextField(rect, currentValue);
+        }
+    }
+    
+    public static class SeweralGUI
     {
         public static string DelayedTextField(Rect position, string currentValue)
         {
