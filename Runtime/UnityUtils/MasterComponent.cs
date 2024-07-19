@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using SeweralIdeas.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 namespace SeweralIdeas.UnityUtils
@@ -7,15 +8,17 @@ namespace SeweralIdeas.UnityUtils
         where TMaster : MasterComponent<TMaster, TSlave>
         where TSlave : SlaveComponent<TMaster, TSlave>
     {
-        private HashSet<SlaveComponent<TMaster, TSlave>> m_slaves = new();
+        private HashSet<TSlave> m_slaves = new();
         internal bool MasterDestroyed => m_slaves == null;
-        
-        internal void RegisterSlave(SlaveComponent<TMaster, TSlave> slaveComponent)
+
+        public ReadonlySetView<TSlave> Slaves => new(m_slaves);
+
+        internal void RegisterSlave(TSlave slaveComponent)
         {
             m_slaves.Add(slaveComponent);
         }
         
-        internal void UnregisterSlave(SlaveComponent<TMaster, TSlave> slaveComponent)
+        internal void UnregisterSlave(TSlave slaveComponent)
         {
             if(m_slaves != null)
                 m_slaves.Remove(slaveComponent);
@@ -38,7 +41,7 @@ namespace SeweralIdeas.UnityUtils
         {
             using (ListPool<SlaveComponent<TMaster, TSlave>>.Get(out var slaves))
             {
-                foreach(var slave in m_slaves)
+                foreach(var slave in Slaves)
                     slaves.Add(slave);
 
                 m_slaves = null;
@@ -56,21 +59,21 @@ namespace SeweralIdeas.UnityUtils
         where TSlave : SlaveComponent<TMaster, TSlave>
     {
         private TMaster m_master;
-        protected internal TMaster Master
+        public TMaster Master
         {
-            protected get => m_master;
-            set
+            get => m_master;
+            protected internal set
             {
                 if(m_master == value)
                     return;
 
                 if(m_master)
-                    m_master.UnregisterSlave(this);
+                    m_master.UnregisterSlave((TSlave)this);
 
                 m_master = value;
                     
                 if(m_master)
-                    m_master.RegisterSlave(this);
+                    m_master.RegisterSlave((TSlave)this);
 
             }
         }
