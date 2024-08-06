@@ -15,7 +15,7 @@ namespace SeweralIdeas.UnityUtils
         private                 int?         _globalHandle               = null;
         
         public Observable<Scene>.Readonly LoadedScene => _loadedScene.ReadOnly;
-        private static readonly HashSet<int> OtherLoadersReservedHandles = new();
+        private static readonly Dictionary<int, AdditiveSceneLoader> OtherLoadersReservedHandles = new();
         
         [Serializable]
         public struct ToLoad
@@ -95,7 +95,7 @@ namespace SeweralIdeas.UnityUtils
                 }
                 
                 //Skip globally reserved scenes.
-                if (OtherLoadersReservedHandles.Contains(someLoadedScene.handle))
+                if (OtherLoadersReservedHandles.ContainsKey(someLoadedScene.handle))
                 {
                     continue;
                 }
@@ -123,18 +123,24 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
+        public static bool IsSceneAssignedToAnyLoader(Scene scene) => OtherLoadersReservedHandles.ContainsKey(scene.handle);
+
         private void OnMySceneLoaded(Scene loadedScene)
         {
             if (_globalHandle != null)
             {
-                OtherLoadersReservedHandles.Remove(_globalHandle.Value);
+                OtherLoadersReservedHandles.TryGetValue(_globalHandle.Value, out var assignedLoader);
+                if(ReferenceEquals(assignedLoader, this))
+                {
+                    OtherLoadersReservedHandles.Remove(_globalHandle.Value);
+                }
             }
             
             _globalHandle = loadedScene.IsValid() ? loadedScene.handle : null;
             
             if (_globalHandle != null)
             {
-                OtherLoadersReservedHandles.Add(_globalHandle.Value);
+                OtherLoadersReservedHandles.Add(_globalHandle.Value, this);
             }
             
             _loadedScene.Value = loadedScene;
