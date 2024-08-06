@@ -140,6 +140,13 @@ namespace SeweralIdeas.UnityUtils
             _loadedScene.Value = loadedScene;
         }
 
+        public void AssignLoadedScene(Scene scene)
+        {
+            if (_asyncOperation != null)
+                throw new InvalidOperationException("Assigning a loaded scene during loading is not supported.");
+            OnMySceneLoaded(scene);
+        }
+        
         public void Dispose()
         {
             SetSceneToLoad(default);
