@@ -150,9 +150,10 @@ namespace SeweralIdeas.UnityUtils
         }
 #endif
 
-        class AssetByNameLookup<T> : ScriptableObject where T:UnityEngine.Object
-        {
-            [SerializeField] private AssetByNameTable<T> m_table;
-        }
+    }
+    
+    public class AssetByNameLookup<T> : ScriptableObject where T:UnityEngine.Object
+    {
+        [SerializeField] private AssetByNameTable<T> m_table;
     }
 }
