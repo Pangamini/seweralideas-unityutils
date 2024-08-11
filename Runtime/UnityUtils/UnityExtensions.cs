@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
-using JetBrains.Annotations;
+﻿using System;
+using System.Collections.Generic;
 using SeweralIdeas.Pooling;
 using SeweralIdeas.Utils;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 
 namespace SeweralIdeas.UnityUtils
 {
@@ -26,7 +27,7 @@ namespace SeweralIdeas.UnityUtils
             return false;
         }
 
-        public static T FindObjectOfType<T>(this UnityEngine.SceneManagement.Scene scene) where T:class
+        public static T FindObjectOfType<T>(this Scene scene) where T:class
         {
             using (ListPool<GameObject>.Get(out var list))
             {
@@ -41,7 +42,7 @@ namespace SeweralIdeas.UnityUtils
             return null;
         }
 
-        public static void FindObjectsOfType<T>(this UnityEngine.SceneManagement.Scene scene, List<T> result, bool includeInactive = false) where T:class
+        public static void FindObjectsOfType<T>(this Scene scene, List<T> result, bool includeInactive = false) where T:class
         {
             result.Clear();
             var compList = new List<T>();   // IL2CPP AOT would fail with StackAlloc
@@ -75,13 +76,13 @@ namespace SeweralIdeas.UnityUtils
             return value * value;
         }
 
-        public static IEnumerator<YieldInstruction> WaitRoutine(YieldInstruction waitInstruction, System.Action action)
+        public static IEnumerator<YieldInstruction> WaitRoutine(YieldInstruction waitInstruction, Action action)
         {
             yield return waitInstruction;
             action();
         }
 
-        public static void Wait(this MonoBehaviour component, YieldInstruction waitInstruction, System.Action action)
+        public static void Wait(this MonoBehaviour component, YieldInstruction waitInstruction, Action action)
         {
             component.StartCoroutine(WaitRoutine(waitInstruction, action));
         }
@@ -110,7 +111,7 @@ namespace SeweralIdeas.UnityUtils
                 case ExplosionFalloff.None:
                     return 1;
                 default:
-                    throw new System.ArgumentException();
+                    throw new ArgumentException();
             }
         }
 
