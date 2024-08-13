@@ -1,34 +1,80 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using SeweralIdeas.Utils;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 
 namespace SeweralIdeas.UnityUtils
 {
     public class AdditiveSceneLoader
     {
-        private AsyncOperation _asyncOperation;
-        private ToLoad?        _queued = null;
-
-        private readonly Observable<Scene> _loadedScene = new();
-        private                 int?         _globalHandle               = null;
+        private          ToLoad?                           _queued               = null;
+        private          ToLoad?                           _currentLoadProcess   = null;
+        private readonly Observable<Scene>                 _loadedScene          = new();
+        private readonly HashSet<int>                      _alreadyLoadedHandles = new();
+        private readonly UnityAction<Scene, LoadSceneMode> _onSomeSceneLoadedAction;
+        private          bool                              _subscribed = false;
+        private          bool                              _disposed   = false;
+        
+        #if DEBUG
+        private StackTrace _debug_constructionStackTrace;
+        #endif
         
         public Observable<Scene>.Readonly LoadedScene => _loadedScene.ReadOnly;
+        
         private static readonly Dictionary<int, AdditiveSceneLoader> OtherLoadersReservedHandles = new();
-        
-        [Serializable]
-        public struct ToLoad
+        private static readonly HashSet<AdditiveSceneLoader>         SubscribedLoaders           = new();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Init()
         {
-            [field: SerializeField] public string ScenePath { get; set; }
-            [field: SerializeField] public LocalPhysicsMode PhysicsMode { get; set; }
+            OtherLoadersReservedHandles.Clear();
+            
+            while (SubscribedLoaders.Count > 0)
+            {
+                var arr = SubscribedLoaders.ToArray();
+                SubscribedLoaders.Clear();
+                foreach (var loader in arr)
+                {
+                    loader.SetSubscribed(false);
+                }
+            }
         }
-        
+
+        public AdditiveSceneLoader()
+        {
+            _onSomeSceneLoadedAction = OnSomeSceneLoaded;
+#if DEBUG
+            _debug_constructionStackTrace = new StackTrace(1);
+#endif
+        }
+
+        private void SetSubscribed(bool subscribe)
+        {
+            if (subscribe == _subscribed)
+                return;
+            if (subscribe)
+            {
+                SceneManager.sceneLoaded += _onSomeSceneLoadedAction;
+                SubscribedLoaders.Add(this);
+            }
+            else
+            {
+                SubscribedLoaders.Remove(this);
+                SceneManager.sceneLoaded -= _onSomeSceneLoadedAction; 
+            }
+            _subscribed = subscribe;
+        }
         
         public void SetSceneToLoad(ToLoad toLoad)
         {
+            CheckDisposed();
+            
             // If already loading something, queue and return
-            if (_asyncOperation != null)
+            if (_currentLoadProcess != null)
             {
                 _queued = toLoad;
                 return;
@@ -37,10 +83,8 @@ namespace SeweralIdeas.UnityUtils
             // If some scene already loaded, unload
             var currentlyLoaded = _loadedScene.Value;
             if(currentlyLoaded.IsValid())
-            {
                 SceneManager.UnloadSceneAsync(currentlyLoaded);
-            }
-            
+
             // If the scene index is invalid, load "nothing"
             int myIndex = SceneUtility.GetBuildIndexByScenePath(toLoad.ScenePath);
             if (myIndex < 0)
@@ -51,111 +95,117 @@ namespace SeweralIdeas.UnityUtils
             
             // Gather all other instances of this scene that are already loaded, so we can ignore them later
             int loadedCount = SceneManager.loadedSceneCount;
-            HashSet<int> alreadyLoadedHandles = new();
+            _alreadyLoadedHandles.Clear();
             for (int i = 0; i < loadedCount; ++i)
             {
                 Scene someLoadedScene = SceneManager.GetSceneAt(i);
                 if (someLoadedScene.buildIndex != myIndex)
-                {
                     continue;
-                }
 
-                alreadyLoadedHandles.Add(someLoadedScene.handle);
+                _alreadyLoadedHandles.Add(someLoadedScene.handle);
             }
             
             // Begin loading
-            _asyncOperation = SceneManager.LoadSceneAsync(toLoad.ScenePath, new LoadSceneParameters(LoadSceneMode.Additive, toLoad.PhysicsMode));
-            if (_asyncOperation == null)
-            {
-                return;
-            }
-            
-            _asyncOperation.completed += asyncOp => OnAsyncOperationCompleted(asyncOp, toLoad, alreadyLoadedHandles);
+            _currentLoadProcess = toLoad;
+            SetSubscribed(true);
+            SceneManager.LoadSceneAsync(toLoad.ScenePath, new LoadSceneParameters(LoadSceneMode.Additive, toLoad.PhysicsMode));
         }
-
-        private void OnAsyncOperationCompleted(AsyncOperation obj, ToLoad toLoad, HashSet<int> alreadyLoadedHandles)
+        
+        private void OnSomeSceneLoaded(Scene someLoadedScene, LoadSceneMode mode)
         {
-            int myIndex = SceneUtility.GetBuildIndexByScenePath(toLoad.ScenePath);
-            int loadedCount = SceneManager.loadedSceneCount;
-            
-            // Iterate over all loaded scenes.
-            for (int i = 0; i < loadedCount; ++i)
-            {
-                // Skip scenes that are of different build Index
-                Scene someLoadedScene = SceneManager.GetSceneAt(i);
-                if (someLoadedScene.buildIndex != myIndex)
-                {
-                    continue;
-                }
-
-                // Skip scenes that were loaded before.
-                if (alreadyLoadedHandles.Contains(someLoadedScene.handle))
-                {
-                    continue;
-                }
-                
-                //Skip globally reserved scenes.
-                if (OtherLoadersReservedHandles.ContainsKey(someLoadedScene.handle))
-                {
-                    continue;
-                }
-
-                // someLoadedScene now hopefully contains our scene.
-                // Did we queue up something else in the meantime? Then unload and repeat.
-                var queued = _queued;
-                var oldAsyncOp = _asyncOperation;
-                _queued = null;
-                _asyncOperation = null;
-
-                if (oldAsyncOp != obj || queued.HasValue)
-                {
-                    if(queued.HasValue)
-                    {
-                        SetSceneToLoad(queued.Value);
-                    }
-
-                    return;
-                }
-
-                // Final callback, we're done!
-                OnMySceneLoaded(someLoadedScene);
+            if (mode != LoadSceneMode.Additive)
                 return;
-            }
+            if (_currentLoadProcess == null)
+                return;
+
+            var toLoad = _currentLoadProcess.Value;
+            
+            int toLoadBuildIndex = SceneUtility.GetBuildIndexByScenePath(toLoad.ScenePath);
+            
+            // Skip scenes that are of different build Index
+            if (someLoadedScene.buildIndex != toLoadBuildIndex)
+                return;
+
+            // Skip scenes that were loaded before.
+            if (_alreadyLoadedHandles.Contains(someLoadedScene.handle))
+                return;
+
+            //Skip globally reserved scenes.
+            if (OtherLoadersReservedHandles.ContainsKey(someLoadedScene.handle))
+                return;
+
+            // someLoadedScene now hopefully contains our scene.
+            // Did we queue up something else in the meantime? Then unload and repeat.
+            var queued = _queued;
+            _queued = null;
+
+            if(queued.HasValue)
+                SetSceneToLoad(queued.Value);
+
+            // Final callback, we're done!
+            
+            OnMySceneLoaded(someLoadedScene);
+        
         }
 
         public static bool IsSceneAssignedToAnyLoader(Scene scene) => OtherLoadersReservedHandles.ContainsKey(scene.handle);
 
         private void OnMySceneLoaded(Scene loadedScene)
         {
-            if (_globalHandle != null)
-            {
-                OtherLoadersReservedHandles.TryGetValue(_globalHandle.Value, out var assignedLoader);
-                if(ReferenceEquals(assignedLoader, this))
-                {
-                    OtherLoadersReservedHandles.Remove(_globalHandle.Value);
-                }
-            }
-            
-            _globalHandle = loadedScene.IsValid() ? loadedScene.handle : null;
-            
-            if (_globalHandle != null)
-            {
-                OtherLoadersReservedHandles.Add(_globalHandle.Value, this);
-            }
-            
+            if(loadedScene.handle != 0)
+                OtherLoadersReservedHandles.Add(loadedScene.handle, this);
+            _currentLoadProcess = null;
             _loadedScene.Value = loadedScene;
+            SetSubscribed(false);
         }
 
         public void AssignLoadedScene(Scene scene)
         {
-            if (_asyncOperation != null)
+            CheckDisposed();
+            if (_currentLoadProcess != null)
                 throw new InvalidOperationException("Assigning a loaded scene during loading is not supported.");
             OnMySceneLoaded(scene);
         }
         
         public void Dispose()
         {
+            CheckDisposed();
+            SetSubscribed(false);
             SetSceneToLoad(default);
+            _disposed = true;
+            GC.SuppressFinalize(this);
         }
+
+        ~AdditiveSceneLoader()
+        {
+#if DEBUG
+            UnityEngine.Debug.LogError($"{nameof(AdditiveSceneLoader)} not disposed of correctly. Creation at:\n{_debug_constructionStackTrace}");
+#else
+            UnityEngine.Debug.LogError($"{nameof(AdditiveSceneLoader)} not disposed of correctly.");
+#endif
+        }
+        
+        private void CheckDisposed()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException("AdditiveSceneLoader");
+        }
+
+
+        [Serializable]
+        public struct ToLoad : IEquatable<ToLoad>
+        {
+            [field: SerializeField] public string ScenePath { get; set; }
+            [field: SerializeField] public LocalPhysicsMode PhysicsMode { get; set; }
+            
+            #region Equality
+            public bool Equals(ToLoad other) => ScenePath == other.ScenePath && PhysicsMode == other.PhysicsMode;
+            public override bool Equals(object obj) => obj is ToLoad other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(ScenePath, (int)PhysicsMode);
+            public static bool operator ==(ToLoad left, ToLoad right) => left.Equals(right);
+            public static bool operator !=(ToLoad left, ToLoad right) => !left.Equals(right);
+            #endregion
+        }
+
     }
 }
