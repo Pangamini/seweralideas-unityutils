@@ -23,6 +23,7 @@ namespace SeweralIdeas.Collections
         public event Action<TKey, TVal> Added;
         public event Action<TKey, TVal> Removed;
         public bool Contains(TKey element);
+        public void VisitAll(Action<TKey, TVal> visitor);
     }
 
     public class ObservableDictionary<TKey, TVal> : IObservableDictionary<TKey, TVal>
