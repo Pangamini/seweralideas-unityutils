@@ -5,45 +5,46 @@ using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils
 {
-    public class MyBehaviour : MonoBehaviour
+    public class Spawnable : MonoBehaviour
     {
         private bool m_started = false;
-        private bool m_wokeUp = false;
+        private bool m_spawned = false;
+        public bool Spawned => m_spawned;
 
         protected void Awake() => OnAwake();
 
-        protected void OnEnable() => TryWakeup();
+        protected void OnEnable() => TrySpawn();
 
-        protected void OnDisable() => TrySleep();
+        protected void OnDisable() => TryDespawn();
 
         protected void OnDestroy() => OnDestroyed();
 
-        private void TryWakeup()
+        private void TrySpawn()
         {
-            if(!m_started || m_wokeUp)
+            if(!m_started || m_spawned)
                 return;
-            m_wokeUp = true;
-            OnWakeup();
+            m_spawned = true;
+            OnSpawn();
         }
 
-        private void TrySleep()
+        private void TryDespawn()
         {
-            if(!m_wokeUp)
+            if(!m_spawned)
                 return;
-            m_wokeUp = false;
-            OnSleep();
+            m_spawned = false;
+            OnDespawn();
         }
 
         protected void Start()
         {
             m_started = true;
-            TryWakeup();
             OnStart();
+            TrySpawn();
         }
         
         protected virtual void OnAwake() {}
-        protected virtual void OnWakeup() {}
-        protected virtual void OnSleep() {}
+        protected virtual void OnSpawn() {}
+        protected virtual void OnDespawn() {}
         protected virtual void OnStart() {}
         protected virtual void OnDestroyed() {}
     }
