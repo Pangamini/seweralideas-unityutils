@@ -1,6 +1,6 @@
 {
     "name": "SeweralIdeas.UnityUtils.Editor",
-    "rootNamespace": "SeweralIdeas.UnityUtils..Editor",
+    "rootNamespace": "SeweralIdeas.UnityUtils.Editor",
     "references": [
         "GUID:cf5a3647f2623f044943c7d12af0b6c4",
         "GUID:8fc323fcc833d07458890d9361dbb587",
