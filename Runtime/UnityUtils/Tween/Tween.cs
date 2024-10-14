@@ -5,9 +5,11 @@ using UnityEngine.Events;
 
 namespace SeweralIdeas.UnityUtils
 {
+    [DefaultExecutionOrder(ExecOrder)]
     public class Tween : MonoBehaviour
     {
-        private float m_progress;
+        public const int   ExecOrder = 0;
+        private      float m_progress;
 
         [SerializeField] 
         private bool m_isOn;

@@ -6,6 +6,7 @@ using UnityEngine;
 namespace SeweralIdeas.UnityUtils
 {
     [RequireComponent(typeof(Tween))]
+    [DefaultExecutionOrder(Tween.ExecOrder - 1)]
     public abstract class TweenComponent : MonoBehaviour
     {
         public Tween Tween { get; private set; }
