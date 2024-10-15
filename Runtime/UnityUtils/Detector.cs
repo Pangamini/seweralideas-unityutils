@@ -1,8 +1,7 @@
-using System;
 using System.Collections.Generic;
 using SeweralIdeas.Collections;
 using UnityEngine;
-
+using UnityEngine.Pool;
 namespace SeweralIdeas.UnityUtils
 {
     public interface IDetector
@@ -10,23 +9,21 @@ namespace SeweralIdeas.UnityUtils
         IEnumerable<object> GetObjectsInside();
     }
 
-    public interface IDetectable
+    public abstract class Detector : MonoBehaviour, IDetector
     {
-        event Action<object> Disabled;
+        public abstract IEnumerable<object> GetObjectsInside();
     }
-
-    public class Detector<TObj, TBase> : MonoBehaviour, IDetector
+    
+    public class Detector<TObj, TBase> : Detector
         where TBase : class
-        where TObj : class, TBase, IDetectable
+        where TObj : class, TBase
     {
         private readonly MultiSet<TObj> m_actorsInside = new();
+        
+        private readonly Dictionary<Collider, TObj> m_collidersInside  = new();
+        private readonly HashSet<Collider> m_collidersStaying = new();
+        
         public ReadonlyMultiSet<TObj> ActorsInside => m_actorsInside.GetReadonly();
-        private readonly Action<object> m_onActorKilled;
-
-        public Detector()
-        {
-            m_onActorKilled = (obj) => m_actorsInside.RemoveAll((TObj)obj);
-        }
 
         protected virtual bool Filter(TObj obj) => true;
 
@@ -43,24 +40,6 @@ namespace SeweralIdeas.UnityUtils
             return false;
         }
 
-        private void Awake()
-        {
-            m_actorsInside.Added += OnAdded;
-            m_actorsInside.Removed += OnRemoved;
-        }
-
-        private void OnAdded(TObj obj)
-        {
-                obj.Disabled += m_onActorKilled;
-                return;
-        }
-
-        private void OnRemoved(TObj obj)
-        {
-                obj.Disabled -= m_onActorKilled;
-        }
-
-
         protected void OnDestroy()
         {
             m_actorsInside.Clear();
@@ -71,22 +50,49 @@ namespace SeweralIdeas.UnityUtils
             if(other.GetComponentInParent<TBase>() is not TObj actor)
                 return;
 
+            m_collidersInside[other] = actor;
+            m_collidersStaying.Add(other);
             m_actorsInside.Add(actor);
         }
 
-        protected void OnTriggerExit(Collider other)
+        protected void OnTriggerStay(Collider other)
         {
-            if(other.GetComponentInParent<TBase>() is not TObj actor)
-                return;
-
-            m_actorsInside.Remove(actor);
+            m_collidersStaying.Add(other);
         }
 
-        IEnumerable<object> IDetector.GetObjectsInside() => m_actorsInside;
+        protected void FixedUpdate()
+        {
+            // process m_collidersStaying
+            using (ListPool<KeyValuePair<Collider, TObj>>.Get(out var toRemove))
+            {
+                foreach (var pair in m_collidersInside)
+                {
+                    if(m_collidersStaying.Contains(pair.Key))
+                        continue;
+                    
+                    toRemove.Add(pair);
+                }
+                
+                m_collidersStaying.Clear();
+
+                foreach (var pair in toRemove)
+                    m_collidersInside.Remove(pair.Key);
+
+                foreach (var pair in toRemove)
+                    MyTriggerExit(pair);
+            }
+        }
+
+        private void MyTriggerExit(KeyValuePair<Collider, TObj> other)
+        {
+            m_actorsInside.Remove(other.Value);
+        }
+
+        public override sealed IEnumerable<object> GetObjectsInside() => m_actorsInside;
     }
 
     public class Detector<T> : Detector<T, T>
-        where T : class, IDetectable
+        where T : class
     {
     }
 }
