@@ -24,6 +24,7 @@ namespace SeweralIdeas.Collections
         public event Action<TKey, TVal> Removed;
         public bool Contains(TKey element);
         public void VisitAll(Action<TKey, TVal> visitor);
+        public bool TryGetValue(TKey key, out TVal value);
     }
 
     public class ObservableDictionary<TKey, TVal> : IObservableDictionary<TKey, TVal>
@@ -90,6 +91,7 @@ namespace SeweralIdeas.Collections
             foreach (var pair in m_dict)
                 visitor(pair.Key, pair.Value);
         }
+        public bool TryGetValue(TKey key, out TVal value) => m_dict.TryGetValue(key, out value);
     }
 
     public class ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>
@@ -128,5 +130,6 @@ namespace SeweralIdeas.Collections
         public Dictionary<TKey, TVal>.Enumerator GetEnumerator() => m_observableDict.GetEnumerator();
         
         public void VisitAll(Action<TKey, TVal> visitor) => m_observableDict.VisitAll(visitor);
+        public bool TryGetValue(TKey key, out TVal value) => m_observableDict.TryGetValue(key, out value);
     }
 }
