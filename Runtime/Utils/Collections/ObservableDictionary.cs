@@ -16,15 +16,27 @@ namespace SeweralIdeas.Collections
         int Count { get; }
     }
 
-    public interface IObservableDictionary<TKey, TVal> : IObservableDictionary, IReadonlyObservableDictionary<TKey, TVal> { }
+    public interface IObservableDictionary<TKey, out TVal> : IObservableDictionary, IReadonlyObservableDictionary<TKey, TVal>
+    {
+        
+    }
 
-    public interface IReadonlyObservableDictionary<TKey, TVal> : IReadonlyObservableDictionary, IEnumerable<KeyValuePair<TKey, TVal>>
+    public interface IReadonlyObservableDictionary<TKey, out TVal> : IReadonlyObservableDictionary
     {
         public event Action<TKey, TVal> Added;
         public event Action<TKey, TVal> Removed;
         public bool Contains(TKey element);
         public void VisitAll(Action<TKey, TVal> visitor);
-        public bool TryGetValue(TKey key, out TVal value);
+        public TVal GetValue(TKey key, out bool hasValue);
+    }
+
+    public static class ReadonlyObservableExtensions
+    {
+        public static bool TryGetValue<TKey, TVal>(this IReadonlyObservableDictionary<TKey, TVal> dict, TKey key, out TVal value)
+        {
+            value = dict.GetValue(key, out var hasValue);
+            return hasValue;
+        }
     }
 
     public class ObservableDictionary<TKey, TVal> : IObservableDictionary<TKey, TVal>
@@ -82,7 +94,7 @@ namespace SeweralIdeas.Collections
 
         public Dictionary<TKey ,TVal>.Enumerator GetEnumerator() => m_dict.GetEnumerator();
 
-        IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => m_dict.GetEnumerator();
+        // IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => m_dict.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => m_dict.GetEnumerator();
 
@@ -91,7 +103,11 @@ namespace SeweralIdeas.Collections
             foreach (var pair in m_dict)
                 visitor(pair.Key, pair.Value);
         }
-        public bool TryGetValue(TKey key, out TVal value) => m_dict.TryGetValue(key, out value);
+        public TVal GetValue(TKey key, out bool hasValue)
+        {
+            hasValue = m_dict.TryGetValue(key, out var ret);
+            return ret;
+        }
     }
 
     public class ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>
@@ -130,6 +146,7 @@ namespace SeweralIdeas.Collections
         public Dictionary<TKey, TVal>.Enumerator GetEnumerator() => m_observableDict.GetEnumerator();
         
         public void VisitAll(Action<TKey, TVal> visitor) => m_observableDict.VisitAll(visitor);
+        public TVal GetValue(TKey key, out bool hasValue) => m_observableDict.GetValue(key, out hasValue);
         public bool TryGetValue(TKey key, out TVal value) => m_observableDict.TryGetValue(key, out value);
     }
 }
