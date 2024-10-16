@@ -20,10 +20,10 @@ namespace SeweralIdeas.UnityUtils
         protected void OnValidate() => UpdateProperty();
         private void UpdateProperty() => m_materialPropertyId = Shader.PropertyToID(m_materialProperty);
 
-        protected override void Awake()
+        protected override void Start()
         {
-            base.Awake();
             UpdateProperty();
+            base.Start();
         }
 
         protected override Color Interpolate(float t) => Color.Lerp(OffValue, OnValue, t);
