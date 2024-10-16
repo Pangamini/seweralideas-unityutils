@@ -11,7 +11,7 @@ namespace SeweralIdeas.UnityUtils
     {
         public Tween Tween { get; private set; }
         
-        protected virtual void Awake()
+        protected virtual void Start()
         {
             Tween = GetComponent<Tween>();
             Tween.ValueChanged += OnValueChanged;
