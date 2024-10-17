@@ -10,16 +10,22 @@ namespace SeweralIdeas.UnityUtils
     public abstract class TweenComponent : MonoBehaviour
     {
         public Tween Tween { get; private set; }
+
+        protected virtual void Awake()
+        {
+            Tween = GetComponent<Tween>();
+        }
         
         protected virtual void Start()
         {
-            Tween = GetComponent<Tween>();
             Tween.ValueChanged += OnValueChanged;
             OnValueChanged(Tween.Progress);
         }
 
-        protected void OnDestroy()
+        protected virtual void OnDestroy()
         {
+            if(Tween == null)
+                Debug.LogError($"{this} Tween is null", this);
             Tween.ValueChanged -= OnValueChanged;
             Tween = null;
         }
