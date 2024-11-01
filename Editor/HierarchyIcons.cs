@@ -11,16 +11,16 @@ namespace SeweralIdeas.UnityUtils
     [InitializeOnLoad]
     public static class HierarchyIcons
     {
-        static readonly Dictionary<Type, Texture> s_icons = new Dictionary<Type, Texture>();
+        static readonly Dictionary<Type, Texture> Icons = new Dictionary<Type, Texture>();
 
         public static bool GetTexture(Type type, out Texture texture)
         {
-            return s_icons.TryGetValue(type, out texture);
+            return Icons.TryGetValue(type, out texture);
         }
 
         public static Texture GetTexture(Type type)
         {
-            s_icons.TryGetValue(type, out Texture texture);
+            Icons.TryGetValue(type, out Texture texture);
             return texture;
         }
 
@@ -38,8 +38,14 @@ namespace SeweralIdeas.UnityUtils
                 if (typeof(Object).IsAssignableFrom(type))
                 {
                     var icon = EditorGUIUtility.ObjectContent(script, type).image;
-                    if (icon && icon.name != "cs Script Icon")
-                        s_icons.Add(type, icon);
+                    if(icon && icon.name != "cs Script Icon")
+                    {
+                        if(!Icons.TryAdd(type, icon))
+                        {
+                            Debug.Log($"Already present: {type.Name}");
+                        }
+
+                    }
                 }
             }
             //
@@ -87,7 +93,7 @@ namespace SeweralIdeas.UnityUtils
                 return;
             
             Texture texture;
-            if (s_icons.TryGetValue(type, out texture))
+            if (Icons.TryGetValue(type, out texture))
             {
                 // place the icoon to the right of the list:
                 Rect r = new Rect(selectionRect);

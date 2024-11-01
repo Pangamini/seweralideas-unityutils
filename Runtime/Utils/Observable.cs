@@ -7,7 +7,7 @@ namespace SeweralIdeas.Utils
 {
     public interface IReadonlyObservable<out T>
     {
-        public event Action<T> Changed;
+        public event Action<T, T> Changed;
         public T Value { get; }
     }
     
@@ -20,7 +20,7 @@ namespace SeweralIdeas.Utils
 #endif
         
         private T         m_value;
-        private Action<T> m_onChanged;
+        private Action<T, T> m_onChanged;
 
         public Observable(T defaultValue = default)
         {
@@ -35,17 +35,18 @@ namespace SeweralIdeas.Utils
                 
                 if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(m_value, value))
                     return;
+                var old = m_value;
                 m_value = value;
-                m_onChanged?.Invoke(value);
+                m_onChanged?.Invoke(value, old);
             }
         }
 
-        public event Action<T> Changed
+        public event Action<T, T> Changed
         {
             add
             {
                 m_onChanged += value;
-                value(Value);
+                value(Value, default);
             }
             remove => m_onChanged -= value;
         }
@@ -60,7 +61,7 @@ namespace SeweralIdeas.Utils
             private Observable<T> m_observable;
             public T Value => m_observable.Value;
 
-            public event Action<T> Changed
+            public event Action<T, T> Changed
             {
                 add => m_observable.Changed += value;
                 remove => m_observable.Changed -= value;
