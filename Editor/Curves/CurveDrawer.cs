@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using SeweralIdeas.Pooling;
 using SeweralIdeas.UnityUtils.Editor;
-using SeweralIdeas.Utils;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace SeweralIdeas.UnityUtils.Curves.Editor
 {
