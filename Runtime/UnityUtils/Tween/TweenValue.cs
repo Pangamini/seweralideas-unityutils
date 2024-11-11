@@ -1,7 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using SeweralIdeas.Pooling;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -29,7 +25,7 @@ namespace SeweralIdeas.UnityUtils
         public T OffValue => m_offValue;
         public T OnValue => m_onValue;
 
-        protected override sealed void OnValueChanged(float progress)
+        protected sealed override void OnValueChanged(float progress)
         {
             T newValue = Interpolate(progress);
             m_onValueChanged.Invoke(newValue);

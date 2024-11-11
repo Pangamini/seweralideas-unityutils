@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using JetBrains.Annotations;
-using SeweralIdeas.Pooling;
+using SeweralIdeas.UnityUtils;
 
 namespace SeweralIdeas.Utils
 {
