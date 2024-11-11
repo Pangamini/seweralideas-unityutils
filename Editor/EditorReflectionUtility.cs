@@ -2,8 +2,7 @@
 using System.Reflection;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using SeweralIdeas.Pooling;
-using UnityEditor;
+using UnityEngine.Pool;
 
 namespace SeweralIdeas.UnityUtils.Editor
 {
