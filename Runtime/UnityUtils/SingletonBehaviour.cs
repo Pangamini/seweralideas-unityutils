@@ -5,21 +5,10 @@ namespace SeweralIdeas.UnityUtils
     public abstract class SingletonBehaviour<T> : MonoBehaviour where T : SingletonBehaviour<T>
     {
         private static T s_instance;
-        private static bool s_search = true;
-
-        
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSingleton()
-        {
-            s_instance = default;
-            s_search = default;
-        }
-        
         public static T GetInstance(bool printError = true)
         {
-            if (s_search && s_instance == null)
+            if (s_instance == null)
             {
-                s_search = false;
                 s_instance = FindObjectOfType<T>();
                 if (s_instance == null)
                 {
@@ -28,11 +17,6 @@ namespace SeweralIdeas.UnityUtils
                 }
             }
             return s_instance;
-        }
-
-        public SingletonBehaviour()
-        {
-            s_search = true;
         }
 
         protected void Awake()
@@ -53,7 +37,6 @@ namespace SeweralIdeas.UnityUtils
             if (s_instance == this)
             {
                 s_instance = null;
-                s_search = true;
             }
             OnDestroyed();
         }

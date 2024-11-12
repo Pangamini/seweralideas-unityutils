@@ -5,14 +5,16 @@ namespace SeweralIdeas.UnityUtils
     {
         private static T s_instance;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSingleton() => s_instance = default;
-
         public static T GetInstance()
         {
-            if (s_instance) return s_instance;
+            if (s_instance)
+                return s_instance;
+            
             s_instance = Resources.Load<T>(typeof(T).Name);
-            if (s_instance) return s_instance;
+            
+            if (s_instance) 
+                return s_instance;
+            
             Debug.LogError($"Instance of {typeof( T ).Name} not found in Resources");
             s_instance = CreateInstance<T>();
             return s_instance;

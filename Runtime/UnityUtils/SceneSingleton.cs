@@ -8,20 +8,16 @@ namespace SeweralIdeas.UnityUtils
     public class SceneSingleton<T> : MonoBehaviour where T : SceneSingleton<T>
     {
         private static readonly Dictionary<Scene, T> s_instances = new Dictionary<Scene, T>();
-        
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSingleton() => s_instances.Clear();
 
         public static T GetInstance(Scene scene)
         {
-            if (s_instances.TryGetValue(scene, out T output))
+            if (s_instances.TryGetValue(scene, out T output) && output != null)
                 return output;
 
             output = UnityExtensions.FindObjectOfType<T>(scene);
             if (output)
                 s_instances.Add(scene, output);
             return output;
-
         }
 
         public static bool GetInstance(Scene scene, out T instance)
