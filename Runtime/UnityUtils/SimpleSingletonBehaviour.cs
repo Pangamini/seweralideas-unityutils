@@ -17,10 +17,6 @@ namespace SeweralIdeas.UnityUtils
             }
             return s_instance;
         }
-        
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetSingleton() => s_instance = default;
-
 
         void Awake()
         {

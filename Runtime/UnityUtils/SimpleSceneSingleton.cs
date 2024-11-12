@@ -4,7 +4,7 @@ namespace SeweralIdeas.UnityUtils
 {
     public class SimpleSceneSingleton<T> : SceneSingleton<T> where T : SimpleSceneSingleton<T>
     {
-        public new static T GetInstance(Scene scene)
+        public static new T GetInstance(Scene scene)
         {
             var instance = SceneSingleton<T>.GetInstance(scene);
             if(!instance)
