@@ -16,7 +16,7 @@ namespace SeweralIdeas.UnityUtils
 
             output = UnityExtensions.FindObjectOfType<T>(scene);
             if (output)
-                s_instances.Add(scene, output);
+                s_instances[scene] = output;    // using assignment instead of Add() so we overwrite destroyed singletons. (checked above)
             return output;
         }
 
