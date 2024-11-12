@@ -1,6 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+
 namespace SeweralIdeas.UnityUtils
 {
     public abstract class SingletonBehaviour<T> : MonoBehaviour where T : SingletonBehaviour<T>
@@ -8,6 +7,14 @@ namespace SeweralIdeas.UnityUtils
         private static T s_instance;
         private static bool s_search = true;
 
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSingleton()
+        {
+            s_instance = default;
+            s_search = default;
+        }
+        
         public static T GetInstance(bool printError = true)
         {
             if (s_search && s_instance == null)
