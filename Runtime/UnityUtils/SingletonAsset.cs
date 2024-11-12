@@ -5,6 +5,9 @@ namespace SeweralIdeas.UnityUtils
     {
         private static T s_instance;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSingleton() => s_instance = default;
+
         public static T GetInstance()
         {
             if (s_instance) return s_instance;

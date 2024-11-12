@@ -8,6 +8,9 @@ namespace SeweralIdeas.UnityUtils
     public class SceneSingleton<T> : MonoBehaviour where T : SceneSingleton<T>
     {
         private static readonly Dictionary<Scene, T> s_instances = new Dictionary<Scene, T>();
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSingleton() => s_instances.Clear();
 
         public static T GetInstance(Scene scene)
         {
