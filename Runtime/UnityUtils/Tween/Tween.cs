@@ -21,6 +21,9 @@ namespace SeweralIdeas.UnityUtils
         private float m_smoothTime = 0.1f;
         
         [SerializeField]
+        private bool m_useUnscaledTime;
+        
+        [SerializeField]
         [Condition(nameof(IsCurve))]
         private AnimationCurve m_curve = AnimationCurve.EaseInOut(0,0,1,1);
         
@@ -83,15 +86,16 @@ namespace SeweralIdeas.UnityUtils
         {
             float target = IsOn ? 1 : 0;
 
+            float deltaTime = m_useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
             switch (m_mode)
             {
                 case Mode.Simple:
                 case Mode.Curve:
-                    m_progress = Mathf.MoveTowards(m_progress, target, (1f / m_smoothTime)*Time.deltaTime);
+                    m_progress = Mathf.MoveTowards(m_progress, target, (1f / m_smoothTime)*deltaTime);
                     break;
                 
                 case Mode.SmoothDamp:
-                    m_progress = Mathf.SmoothDamp(m_progress, target, ref m_velocity, m_smoothTime);
+                    m_progress = Mathf.SmoothDamp(m_progress, target, ref m_velocity, m_smoothTime, float.PositiveInfinity, deltaTime);
                     break;
             }
             
