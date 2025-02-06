@@ -16,6 +16,9 @@ namespace SeweralIdeas.Collections
 
         public int Count => m_array.Length;
 
+        
+        public static implicit operator ReadonlyArrayView<T> (T[] arr) => new ReadonlyArrayView<T>(arr);
+        
         public Enumerator GetEnumerator() => new (m_array);
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
