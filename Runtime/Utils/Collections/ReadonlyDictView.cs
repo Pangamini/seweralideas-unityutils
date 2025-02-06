@@ -30,7 +30,7 @@ namespace SeweralIdeas.Collections
         
         public Dictionary<TKey, TVal>.Enumerator GetEnumerator() => (m_dict ?? Empty).GetEnumerator();
 
-        
+        public static implicit operator ReadonlyDictView<TKey, TVal> (Dictionary<TKey, TVal> dict) => new ReadonlyDictView<TKey, TVal>(dict);
         
         IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
