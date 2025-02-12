@@ -29,7 +29,7 @@ namespace SeweralIdeas.UnityUtils
         public void Add(TKey key, TVal value)
         {
             if(m_reverse.ContainsKey(value))
-                throw new ArgumentException();
+                throw new ArgumentException("Value already present in the Bictionary");
             
             m_forward.Add(key, value);
             m_reverse.Add(value, key);
