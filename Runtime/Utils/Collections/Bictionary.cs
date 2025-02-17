@@ -4,13 +4,22 @@ using System.Collections.Generic;
 
 namespace SeweralIdeas.UnityUtils
 {
-    public class Bictionary<TKey, TVal> : IDictionary<TKey, TVal>
+    public interface IBictionary<TKey, TVal> : IDictionary<TKey, TVal>
+    {
+        IBictionary<TVal, TKey> Reversed { get; }
+        bool ContainsValue(TVal value);
+        bool TryGetKey(TVal value, out TKey key);
+    }
+    
+    public class Bictionary<TKey, TVal> : IBictionary<TKey, TVal>
     {
         private readonly Dictionary<TKey, TVal> m_forward;
         private readonly Dictionary<TVal, TKey> m_reverse;
 
         public readonly Bictionary<TVal, TKey> Reversed;
 
+        IBictionary<TVal, TKey> IBictionary<TKey, TVal>.Reversed => Reversed;
+        
         public Bictionary()
         {
             m_forward = new Dictionary<TKey, TVal>();
