@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace SeweralIdeas.Collections
@@ -9,7 +10,7 @@ namespace SeweralIdeas.Collections
     /// <typeparam name="T"></typeparam>
     public class TypeLookupDatabase<T> where T : class
     {
-        private Dictionary<Type, IMySet> m_objectsByType = new Dictionary<Type, IMySet>();
+        private readonly Dictionary<Type, IMySet> m_objectsByType = new Dictionary<Type, IMySet>();
 
         public TypeLookup<T> Readonly { get; }
 
@@ -81,7 +82,7 @@ namespace SeweralIdeas.Collections
                 if (obj is TType typed)
                     mySet.Add(typed);
             }
-           
+            
             m_objectsByType.Add(typeof(TType), set);
             return ((ObservableSet<TType>)set).GetReadonly();
         }
@@ -93,7 +94,6 @@ namespace SeweralIdeas.Collections
                 pair.Value.Clear();
             }
         }
-
     }
     
     public class TypeLookup<T> where T:class
@@ -107,6 +107,4 @@ namespace SeweralIdeas.Collections
 
         public ReadonlyObservableSet<TType> GetObjectsByType<TType>() => m_lookupDatabase.GetObjectsByType<TType>();
     }
-
-
 }

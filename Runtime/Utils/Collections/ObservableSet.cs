@@ -1,14 +1,16 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace SeweralIdeas.Collections
 {
     public static class SetExtensions
     {
-        public static bool GetAny<T>(this IEnumerable<T> enumerable, out T value)
+        public static bool GetAny<T>(this IEnumerable<T> enumerable, out T? value)
         {
-            var enumerator = enumerable.GetEnumerator();
+            using var enumerator = enumerable.GetEnumerator();
             if (enumerator.MoveNext())
             {
                 value = enumerator.Current;
@@ -19,14 +21,11 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public interface IObservableSet : IReadonlyObservableSet
-    {
-    }
+    public interface IObservableSet : IReadonlyObservableSet { }
 
     public interface IReadonlyObservableSet
     {
         Type GetContainedType();
-        
         int Count { get; }
     }
 
@@ -34,39 +33,56 @@ namespace SeweralIdeas.Collections
 
     public interface IReadonlyObservableSet<T> : IReadonlyObservableSet
     {
-        public event Action<T> Added;
-        public event Action<T> Removed;
+        public event Action<T>? Added;
+        public event Action<T>? Removed;
         public bool Contains(T element);
     }
 
     public class ObservableSet<T> : ICollection<T>, IObservableSet<T>
     {
         private HashSet<T> m_set = new HashSet<T>();
-        public event Action<T> Added;
-        public event Action<T> Removed;
-        private readonly ReadonlyObservableSet<T> m_readonlyObservableSet;
-
-        public ObservableSet()
-        {
-            m_readonlyObservableSet = new ReadonlyObservableSet<T>(this);
-        }
-
+        public event Action<T>? Added;
+        public event Action<T>? Removed;
+        
         public int Count => m_set.Count;
 
         public Type GetContainedType() => typeof(T);
 
         public void Clear()
         {
-            if (m_set.Count == 0) return;
+            if (m_set.Count == 0) 
+                return;
             var set = m_set;
-            m_set = null;   // to prevent anyone from modifying it from the callbacks
-            if (Removed != null)
+            m_set = null!;   // to prevent anyone from modifying it from the callbacks
+            List<Exception>? exceptions = null;
+
+            try
             {
-                foreach (var obj in set)
-                    Removed(obj);
+                if(Removed != null)
+                {
+                    Action<T> removed = Removed; // make a copy
+                    foreach (var obj in set)
+                    {
+                        try
+                        {
+                            removed(obj);
+                        }
+                        catch( Exception e )
+                        {
+                            exceptions ??= new List<Exception>();
+                            exceptions.Add(e);
+                        }
+                    }
+                }
             }
-            set.Clear();
-            m_set = set;
+            finally
+            {
+                set.Clear();
+                m_set = set;
+            }
+
+            if(exceptions != null)
+                throw new AggregateException(exceptions);
         }
 
         bool ICollection<T>.IsReadOnly => false;
@@ -89,47 +105,28 @@ namespace SeweralIdeas.Collections
             return ret;
         }
 
-        public bool Contains( T obj )
-        {
-            return m_set.Contains(obj);
-        }
+        public bool Contains( T obj ) => m_set.Contains(obj);
 
-        public ReadonlyObservableSet<T> GetReadonly()
-        {
-            return m_readonlyObservableSet;
-        }
+        public ReadonlyObservableSet<T> GetReadonly() => new(this);
 
-        public HashSet<T>.Enumerator GetEnumerator()
-        {
-            return m_set.GetEnumerator();
-        }
+        [MustDisposeResource(false)]
+        public HashSet<T>.Enumerator GetEnumerator() => m_set.GetEnumerator();
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return m_set.GetEnumerator();
-        }
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => m_set.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return m_set.GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => m_set.GetEnumerator();
 
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-            m_set.CopyTo(array, arrayIndex);
-        }
+        public void CopyTo(T[] array, int arrayIndex) => m_set.CopyTo(array, arrayIndex);
 
         public void VisitAll(Action<T> visitor)
         {
             foreach (var obj in m_set)
-            {
                 visitor(obj);
-            }
             
         }
     }
 
-    public class ReadonlyObservableSet<T> : IEnumerable<T>, IReadonlyObservableSet
+    public readonly struct ReadonlyObservableSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>
     {
         private readonly ObservableSet<T> m_observableObservableSet;
 
@@ -140,28 +137,23 @@ namespace SeweralIdeas.Collections
 
         public int Count => m_observableObservableSet.Count;
 
-        public event Action<T> Added
+        public event Action<T>? Added
         {
             add => m_observableObservableSet.Added += value;
             remove => m_observableObservableSet.Added -= value;
         }
 
-        public event Action<T> Removed
+        public event Action<T>? Removed
         {
             add => m_observableObservableSet.Removed += value;
             remove => m_observableObservableSet.Removed -= value;
         }
 
         public bool Contains( T obj ) => m_observableObservableSet.Contains(obj);
-
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)m_observableObservableSet).GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)m_observableObservableSet).GetEnumerator();
-
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => m_observableObservableSet.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => m_observableObservableSet.GetEnumerator();
         public HashSet<T>.Enumerator GetEnumerator() => m_observableObservableSet.GetEnumerator();
-
         Type IReadonlyObservableSet.GetContainedType() => typeof(T);
-
         public void VisitAll(Action<T> visitor) => m_observableObservableSet.VisitAll(visitor);
     }
 }

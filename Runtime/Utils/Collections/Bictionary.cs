@@ -1,14 +1,20 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
 
 namespace SeweralIdeas.UnityUtils
 {
-    public interface IBictionary<TKey, TVal> : IDictionary<TKey, TVal>
+    public interface IReadOnlyBictionary<TKey, TVal> : IReadOnlyDictionary<TKey, TVal>
     {
-        IBictionary<TVal, TKey> Reversed { get; }
+        IReadOnlyBictionary<TVal, TKey> Reversed { get; }
         bool ContainsValue(TVal value);
         bool TryGetKey(TVal value, out TKey key);
+    }
+    
+    public interface IBictionary<TKey, TVal> : IDictionary<TKey, TVal>, IReadOnlyBictionary<TKey, TVal>
+    {
+        new IBictionary<TVal, TKey> Reversed { get; }
     }
     
     public class Bictionary<TKey, TVal> : IBictionary<TKey, TVal>
@@ -19,6 +25,7 @@ namespace SeweralIdeas.UnityUtils
         public readonly Bictionary<TVal, TKey> Reversed;
 
         IBictionary<TVal, TKey> IBictionary<TKey, TVal>.Reversed => Reversed;
+        IReadOnlyBictionary<TVal, TKey> IReadOnlyBictionary<TKey, TVal>.Reversed => Reversed;
         
         public Bictionary()
         {
@@ -95,12 +102,16 @@ namespace SeweralIdeas.UnityUtils
                 m_reverse[value] = key;
             }
         }
-
+        
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TVal>.Keys => Keys;
+        IEnumerable<TVal> IReadOnlyDictionary<TKey, TVal>.Values => Values;
         public ICollection<TKey> Keys => m_forward.Keys;
         public ICollection<TVal> Values => m_reverse.Keys;
         
         IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => m_forward.GetEnumerator();
 
+        public Dictionary<TKey, TVal>.Enumerator GetEnumerator() => m_forward.GetEnumerator();
+        
         IEnumerator IEnumerable.GetEnumerator() => m_forward.GetEnumerator();
         
         public bool Contains(KeyValuePair<TKey, TVal> item) => ((ICollection<KeyValuePair<TKey, TVal>>)m_forward).Contains(item);

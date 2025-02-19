@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace SeweralIdeas.Collections
@@ -20,7 +21,7 @@ namespace SeweralIdeas.Collections
             return true;
         }
         
-        public static bool ContentEquals<T>(List<T> lhs, List<T> rhs)
+        public static bool ContentEquals<T>(List<T>? lhs, List<T>? rhs)
         {
             //first, compare for equality
             if (lhs == rhs)

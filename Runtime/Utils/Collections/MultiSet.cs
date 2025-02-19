@@ -1,6 +1,8 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace SeweralIdeas.Collections
 {
@@ -14,15 +16,13 @@ namespace SeweralIdeas.Collections
         Type GetContainedType();
     }
     
-
-    [System.Serializable]
+    [Serializable]
     public class MultiSet<T> : IEnumerable<T>, IMultiSet, IReadonlyObservableSet<T>
     {
         private Dictionary<T,uint> m_multiSet = new Dictionary<T,uint>();
-        public event Action<T> Added;
-        public event Action<T> Removed;
-        private ReadonlyMultiSet<T> m_readonly;
-
+        public event Action<T>? Added;
+        public event Action<T>? Removed;
+        
         public override string ToString()
         {
             var separator = ", ";
@@ -36,50 +36,55 @@ namespace SeweralIdeas.Collections
             return builder.ToString();
         }
 
-        public Enumerable Enumerate()
-        {
-            return new Enumerable(m_multiSet.GetEnumerator());
-        }
+        public Enumerable Enumerate() => new Enumerable(m_multiSet.GetEnumerator());
 
         public struct Enumerable
         {
-            public Dictionary<T, uint>.Enumerator enumerator;
-
-            public Enumerable(Dictionary<T, uint>.Enumerator enumerator)
-            {
-                this.enumerator = enumerator;
-            }
-            public Dictionary<T, uint>.Enumerator GetEnumerator()
-            {
-                return enumerator;
-            }
+            private readonly Dictionary<T, uint>.Enumerator m_enumerator;
+            public Enumerable(Dictionary<T, uint>.Enumerator enumerator) => m_enumerator = enumerator;
+            public Dictionary<T, uint>.Enumerator GetEnumerator() => m_enumerator;
         }
-
-        public MultiSet()
-        {
-            m_readonly = new ReadonlyMultiSet<T>(this);
-        }
-
+        
         public int Count => m_multiSet.Count;
 
         public Type GetContainedType() => typeof(T);
 
-        [NonSerialized]
-        private bool m_clearing = false;
         public void Clear()
         {
-            m_clearing = true;
+            if (m_multiSet.Count == 0) 
+                return;
+            
+            var set = m_multiSet;
+            m_multiSet = null!;   // to prevent anyone from modifying it from the callbacks
+            List<Exception>? exceptions = null;
+
             try
             {
-                if (Removed != null)
-                    foreach (var obj in m_multiSet)
-                        Removed(obj.Key);
+                if(Removed != null)
+                {
+                    Action<T> removed = Removed; // make a copy
+                    foreach (var pair in set)
+                    {
+                        try
+                        {
+                            removed(pair.Key);
+                        }
+                        catch( Exception e )
+                        {
+                            exceptions ??= new List<Exception>();
+                            exceptions.Add(e);
+                        }
+                    }
+                }
             }
             finally
             {
-                m_multiSet.Clear();
-                m_clearing = false;
+                set.Clear();
+                m_multiSet = set;
             }
+
+            if(exceptions != null)
+                throw new AggregateException(exceptions);
         }
 
 
@@ -90,11 +95,8 @@ namespace SeweralIdeas.Collections
 
         public bool Add(T obj, uint count)
         {
-            if (m_clearing)
-                throw new System.InvalidOperationException("Cannot add objects to set while Clear() is running");
-            if (!m_multiSet.ContainsKey(obj))
+            if (m_multiSet.TryAdd(obj, count))
             {
-                m_multiSet.Add(obj, count);
                 Added?.Invoke(obj);
                 return true;
             }
@@ -104,11 +106,8 @@ namespace SeweralIdeas.Collections
             return false;
         }
 
-        public bool Remove(T obj)
-        {
-            return Remove(obj, 1);
-        }
-        
+        public bool Remove(T obj) => Remove(obj, 1);
+
         public void RemoveAll(T obj)
         {
             if (m_multiSet.Remove(obj))
@@ -119,8 +118,6 @@ namespace SeweralIdeas.Collections
         
         public bool Remove(T obj, uint count)
         {
-            if (m_clearing)
-                return false;
             uint value;
             if ( m_multiSet.TryGetValue(obj, out value) )
             {
@@ -142,46 +139,27 @@ namespace SeweralIdeas.Collections
             return false;
         }
         
-        public bool Contains(T obj)
-        {
-            return m_multiSet.ContainsKey(obj);
-        }
+        public bool Contains(T obj) => m_multiSet.ContainsKey(obj);
 
-        public ReadonlyMultiSet<T> GetReadonly()
-        {
-            return m_readonly;
-        }
+        public ReadonlyMultiSet<T> GetReadonly() => new ReadonlyMultiSet<T>(this);
 
-        public Dictionary<T,uint>.KeyCollection.Enumerator GetEnumerator()
-        {
-            return m_multiSet.Keys.GetEnumerator();
-        }
+        [MustDisposeResource(false)]
+        public Dictionary<T,uint>.KeyCollection.Enumerator GetEnumerator() => m_multiSet.Keys.GetEnumerator();
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return m_multiSet.Keys.GetEnumerator();
-        }
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => m_multiSet.Keys.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return m_multiSet.Keys.GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => m_multiSet.Keys.GetEnumerator();
 
-        public uint GetCount(T t) 
-        {
-            return m_multiSet[t];
-        }
-        
+        public uint GetCount(T t) => m_multiSet[t];
+
     }
 
-    public class ReadonlyMultiSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>
+    public readonly struct ReadonlyMultiSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>
     {
-        private MultiSet<T> m_set;
+        private readonly MultiSet<T> m_set;
 
         public ReadonlyMultiSet(MultiSet<T> set)
         {
-            if (set == null)
-                throw new NullReferenceException("set cannot be null");
             m_set = set;
         }
 
@@ -193,13 +171,13 @@ namespace SeweralIdeas.Collections
             return m_set.GetCount(t);
         }
 
-        public event Action<T> Added
+        public event Action<T>? Added
         {
             add => m_set.Added += value;
             remove => m_set.Added -= value;
         }
 
-        public event Action<T> Removed
+        public event Action<T>? Removed
         {
             add => m_set.Removed += value;
             remove => m_set.Removed -= value;
@@ -211,22 +189,12 @@ namespace SeweralIdeas.Collections
             return m_set.Contains(obj);
         }
 
-        public Dictionary<T, uint>.KeyCollection.Enumerator GetEnumerator()
-        {
-            return m_set.GetEnumerator();
-        }
-        
+        public Dictionary<T, uint>.KeyCollection.Enumerator GetEnumerator() => m_set.GetEnumerator();
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-        
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
 
     }
 }

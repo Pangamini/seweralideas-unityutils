@@ -20,7 +20,7 @@ namespace SeweralIdeas.Utils
         }
         
         private List<Error>? m_errors;
-        private string m_string;
+        private string?      m_string;
         
         public bool IsEmpty => m_errors == null || m_errors.Count == 0;
 
