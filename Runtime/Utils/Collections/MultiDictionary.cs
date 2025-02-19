@@ -1,44 +1,23 @@
-﻿using System.Collections.Generic;
+﻿#nullable enable
+using System.Collections.Generic;
 
 namespace SeweralIdeas.Collections
 {
     public class MultiDictionary<TKey, TVal>
     {
-        private static readonly HashSet<TVal> s_emptySet = new();
+        private static readonly HashSet<TVal> Empty = new();
         
-        private Dictionary<TKey, HashSet<TVal>> m_dict;
+        private readonly Dictionary<TKey, HashSet<TVal>> m_dict;
 
-        ///////////////////////////////////////////////////////////////////////////////////////
+        public MultiDictionary() => m_dict = new Dictionary<TKey, HashSet<TVal>>();
 
-        public MultiDictionary()
-        {
-            m_dict = new Dictionary<TKey, HashSet<TVal>>();
-        }
+        public MultiDictionary(IEqualityComparer<TKey> comparer) => m_dict = new Dictionary<TKey, HashSet<TVal>>(comparer);
 
-        ///////////////////////////////////////////////////////////////////////////////////////
-
-        public MultiDictionary(IEqualityComparer<TKey> comparer)
-        {
-            m_dict = new Dictionary<TKey, HashSet<TVal>>(comparer);
-        }
-
-        ///////////////////////////////////////////////////////////////////////////////////////
-
-        private HashSet<TVal> TryGetList(TKey item)
-        {
-
-            HashSet<TVal> hset;
-            if (m_dict.TryGetValue(item, out hset))
-                return hset;
-            return null;
-        }
-
-        ////////////////////////////////////////////////////////////////////////////
+        private HashSet<TVal>? TryGetList(TKey item) => m_dict.GetValueOrDefault(item);
 
         public bool Add(TKey key, TVal val)
         {
-
-            HashSet<TVal> valList = TryGetList(key);
+            HashSet<TVal>? valList = TryGetList(key);
             if (valList == null)
             {
                 valList = new HashSet<TVal>();
@@ -49,8 +28,7 @@ namespace SeweralIdeas.Collections
 
         public bool Add(TKey key, TVal val, out bool keyAdded)
         {
-
-            HashSet<TVal> valList = TryGetList(key);
+            HashSet<TVal>? valList = TryGetList(key);
             if (valList == null)
             {
                 valList = new HashSet<TVal>();
@@ -64,12 +42,9 @@ namespace SeweralIdeas.Collections
             return valList.Add(val);
         }
 
-        ////////////////////////////////////////////////////////////////////////////
-
         public bool Remove(TKey key, TVal val)
         {
-
-            HashSet<TVal> valList = TryGetList(key);
+            HashSet<TVal>? valList = TryGetList(key);
             if (valList != null)
             {
 
@@ -81,39 +56,21 @@ namespace SeweralIdeas.Collections
             return false;
         }
 
-        ///////////////////////////////////////////////////////////////////////////////////////
+        public void Clear() => m_dict.Clear();
 
-        public void Clear()
-        {
-            m_dict.Clear();
-        }
-
-        ////////////////////////////////////////////////////////////////////////////
-
-        public void RemoveKey(TKey key)
-        {
-            m_dict.Remove(key);
-        }
-
-        ////////////////////////////////////////////////////////////////////////////
+        public void RemoveKey(TKey key) => m_dict.Remove(key);
 
         public ReadonlySetView<TVal> GetItems(TKey key)
         {
-            HashSet<TVal> valList = TryGetList(key);
+            HashSet<TVal>? valList = TryGetList(key);
 
             if (valList != null)
                 return new(valList);
             
-            return new(s_emptySet);
+            return new(Empty);
         }
 
-
-        ///////////////////////////////////////////////////////////////////////////////////////
-
-        public int KeysCount
-        {
-            get { return m_dict.Count; }
-        }
+        public int KeysCount => m_dict.Count;
 
         public int ValuesCount
         {
@@ -128,33 +85,15 @@ namespace SeweralIdeas.Collections
 
         public int GetValuesCount(TKey key)
         {
-            HashSet<TVal> valList = TryGetList(key);
-
-            if (valList != null)
-                return valList.Count;
-
-            return 0;
+            HashSet<TVal>? valList = TryGetList(key);
+            return valList?.Count ?? 0;
         }
         
+        public Dictionary<TKey, HashSet<TVal>>.KeyCollection Keys => m_dict.Keys;
 
-        ///////////////////////////////////////////////////////////////////////////////////////
+        public bool ContainsKey(TKey key) => m_dict.ContainsKey(key);
 
-        public Dictionary<TKey, HashSet<TVal>>.KeyCollection Keys
-        {
-            get { return m_dict.Keys; }
-        }
-
-        ////////////////////////////////////////////////////////////////////////////
-
-        public bool ContainsKey(TKey key)
-        {
-            return m_dict.ContainsKey(key);
-        }
-
-        public Enumerator GetEnumerator()
-        {
-            return new Enumerator(this);
-        }
+        public Enumerator GetEnumerator() => new Enumerator(this);
 
         public struct Enumerator
         {
@@ -183,9 +122,7 @@ namespace SeweralIdeas.Collections
                 }
             }
 
-            public KeyValuePair<TKey, TVal> Current
-            { get { return new KeyValuePair<TKey, TVal>(m_dictEnumerator.Current.Key, m_setEnumerator.Current); } }
-
+            public KeyValuePair<TKey, TVal> Current => new KeyValuePair<TKey, TVal>(m_dictEnumerator.Current.Key, m_setEnumerator.Current);
             private Dictionary<TKey, HashSet<TVal>>.Enumerator m_dictEnumerator;
             private HashSet<TVal>.Enumerator m_setEnumerator;
             private bool m_setReady;

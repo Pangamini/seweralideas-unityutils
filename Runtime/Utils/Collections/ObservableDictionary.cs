@@ -1,6 +1,8 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace SeweralIdeas.Collections
 {
@@ -12,7 +14,6 @@ namespace SeweralIdeas.Collections
     {
         Type GetKeyType();
         Type GetValueType();
-        
         int Count { get; }
     }
 
@@ -23,8 +24,8 @@ namespace SeweralIdeas.Collections
 
     public interface IReadonlyObservableDictionary<TKey, out TVal> : IReadonlyObservableDictionary
     {
-        public event Action<TKey, TVal> Added;
-        public event Action<TKey, TVal> Removed;
+        public event Action<TKey, TVal>? Added;
+        public event Action<TKey, TVal>? Removed;
         public bool Contains(TKey element);
         public void VisitAll(Action<TKey, TVal> visitor);
         public TVal GetValue(TKey key, out bool hasValue);
@@ -42,15 +43,8 @@ namespace SeweralIdeas.Collections
     public class ObservableDictionary<TKey, TVal> : IObservableDictionary<TKey, TVal>
     {
         private Dictionary<TKey, TVal> m_dict = new ();
-        public event Action<TKey, TVal> Added;
-        public event Action<TKey, TVal> Removed;
-        private readonly IReadonlyObservableDictionary<TKey, TVal> m_readonly;
-
-        public ObservableDictionary()
-        {
-            m_readonly = new ReadonlyObservableDictionary<TKey, TVal>(this);
-        }
-
+        public event Action<TKey, TVal>? Added;
+        public event Action<TKey, TVal>? Removed;
         public int Count => m_dict.Count;
 
         public Type GetKeyType() => typeof(TKey);
@@ -58,22 +52,41 @@ namespace SeweralIdeas.Collections
 
         public void Clear()
         {
-            if (m_dict.Count == 0) return;
-            var set = m_dict;
-            m_dict = null;   // to prevent anyone from modifying it from the callbacks
-            if (Removed != null)
+            if (m_dict.Count == 0) 
+                return;
+            var dict = m_dict;
+            m_dict = null!;   // to prevent anyone from modifying it from the callbacks
+            List<Exception>? exceptions = null;
+
+            try
             {
-                foreach (var obj in set)
-                    Removed(obj.Key, obj.Value);
+                if(Removed != null)
+                {
+                    Action<TKey, TVal> removed = Removed; // make a copy
+                    foreach (var pair in dict)
+                    {
+                        try
+                        {
+                            removed(pair.Key, pair.Value);
+                        }
+                        catch( Exception e )
+                        {
+                            exceptions ??= new List<Exception>();
+                            exceptions.Add(e);
+                        }
+                    }
+                }
             }
-            set.Clear();
-            m_dict = set;
+            finally
+            {
+                dict.Clear();
+                m_dict = dict;
+            }
+
+            if(exceptions != null)
+                throw new AggregateException(exceptions);
         }
-
-        // bool ICollection<T>.IsReadOnly => false;
-
-        // void ICollection<T>.Add(T item) => Add(item);
-
+        
         public void Add( TKey key, TVal val )
         {
             m_dict.Add(key, val);
@@ -90,12 +103,11 @@ namespace SeweralIdeas.Collections
 
         public bool Contains( TKey key ) => m_dict.ContainsKey(key);
 
-        public IReadonlyObservableDictionary<TKey, TVal> GetReadonly() => m_readonly;
+        public ReadonlyObservableDictionary<TKey, TVal> GetReadonly() => new(this);
 
+        [MustDisposeResource(false)]
         public Dictionary<TKey ,TVal>.Enumerator GetEnumerator() => m_dict.GetEnumerator();
-
-        // IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => m_dict.GetEnumerator();
-
+        
         IEnumerator IEnumerable.GetEnumerator() => m_dict.GetEnumerator();
 
         public void VisitAll(Action<TKey, TVal> visitor)
@@ -103,6 +115,7 @@ namespace SeweralIdeas.Collections
             foreach (var pair in m_dict)
                 visitor(pair.Key, pair.Value);
         }
+        
         public TVal GetValue(TKey key, out bool hasValue)
         {
             hasValue = m_dict.TryGetValue(key, out var ret);
@@ -110,7 +123,7 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public class ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>
+    public readonly struct ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>
     {
         private readonly ObservableDictionary<TKey, TVal> m_observableDict;
 
@@ -125,26 +138,22 @@ namespace SeweralIdeas.Collections
 
         public int Count => m_observableDict.Count;
 
-        public event Action<TKey, TVal> Added
+        public event Action<TKey, TVal>? Added
         {
             add => m_observableDict.Added += value;
             remove => m_observableDict.Added -= value;
         }
 
-        public event Action<TKey, TVal> Removed
+        public event Action<TKey, TVal>? Removed
         {
             add => m_observableDict.Removed += value;
             remove => m_observableDict.Removed -= value;
         }
 
         public bool Contains( TKey key ) => m_observableDict.Contains(key);
-
-        IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => ((IEnumerable<KeyValuePair<TKey, TVal>>)m_observableDict).GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<KeyValuePair<TKey, TVal>>)m_observableDict).GetEnumerator();
-
+        IEnumerator<KeyValuePair<TKey, TVal>> IEnumerable<KeyValuePair<TKey, TVal>>.GetEnumerator() => m_observableDict.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => m_observableDict.GetEnumerator();
         public Dictionary<TKey, TVal>.Enumerator GetEnumerator() => m_observableDict.GetEnumerator();
-        
         public void VisitAll(Action<TKey, TVal> visitor) => m_observableDict.VisitAll(visitor);
         public TVal GetValue(TKey key, out bool hasValue) => m_observableDict.GetValue(key, out hasValue);
         public bool TryGetValue(TKey key, out TVal value) => m_observableDict.TryGetValue(key, out value);
