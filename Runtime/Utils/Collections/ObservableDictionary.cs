@@ -123,14 +123,11 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public readonly struct ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>
+    public readonly struct ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>, IEquatable<ReadonlyObservableDictionary<TKey, TVal>>
     {
         private readonly ObservableDictionary<TKey, TVal> m_observableDict;
 
-        public ReadonlyObservableDictionary( ObservableDictionary<TKey, TVal> observableObservableSet )
-        {
-            m_observableDict = observableObservableSet ?? throw new NullReferenceException("set cannot be null");
-        }
+        public ReadonlyObservableDictionary( ObservableDictionary<TKey, TVal> observableObservableSet ) => m_observableDict = observableObservableSet;
 
         public Type GetKeyType() => typeof(TKey);
 
@@ -157,5 +154,10 @@ namespace SeweralIdeas.Collections
         public void VisitAll(Action<TKey, TVal> visitor) => m_observableDict.VisitAll(visitor);
         public TVal GetValue(TKey key, out bool hasValue) => m_observableDict.GetValue(key, out hasValue);
         public bool TryGetValue(TKey key, out TVal value) => m_observableDict.TryGetValue(key, out value);
+        public bool Equals(ReadonlyObservableDictionary<TKey, TVal> other) => m_observableDict.Equals(other.m_observableDict);
+        public override bool Equals(object? obj) => obj is ReadonlyObservableDictionary<TKey, TVal> other && Equals(other);
+        public override int GetHashCode() => m_observableDict.GetHashCode();
+        public static bool operator ==(ReadonlyObservableDictionary<TKey, TVal> left, ReadonlyObservableDictionary<TKey, TVal> right) => left.Equals(right);
+        public static bool operator !=(ReadonlyObservableDictionary<TKey, TVal> left, ReadonlyObservableDictionary<TKey, TVal> right) => !left.Equals(right);
     }
 }
