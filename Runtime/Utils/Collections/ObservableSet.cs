@@ -126,14 +126,11 @@ namespace SeweralIdeas.Collections
         }
     }
 
-    public readonly struct ReadonlyObservableSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>
+    public readonly struct ReadonlyObservableSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>, IEquatable<ReadonlyObservableSet<T>>
     {
         private readonly ObservableSet<T> m_observableObservableSet;
 
-        public ReadonlyObservableSet( ObservableSet<T> observableObservableSet )
-        {
-            m_observableObservableSet = observableObservableSet ?? throw new NullReferenceException("set cannot be null");
-        }
+        public ReadonlyObservableSet( ObservableSet<T> observableObservableSet ) => m_observableObservableSet = observableObservableSet;
 
         public int Count => m_observableObservableSet.Count;
 
@@ -155,5 +152,10 @@ namespace SeweralIdeas.Collections
         public HashSet<T>.Enumerator GetEnumerator() => m_observableObservableSet.GetEnumerator();
         Type IReadonlyObservableSet.GetContainedType() => typeof(T);
         public void VisitAll(Action<T> visitor) => m_observableObservableSet.VisitAll(visitor);
+        public bool Equals(ReadonlyObservableSet<T> other) => m_observableObservableSet.Equals(other.m_observableObservableSet);
+        public override bool Equals(object? obj) => obj is ReadonlyObservableSet<T> other && Equals(other);
+        public override int GetHashCode() => m_observableObservableSet.GetHashCode();
+        public static bool operator ==(ReadonlyObservableSet<T> left, ReadonlyObservableSet<T> right) => left.Equals(right);
+        public static bool operator !=(ReadonlyObservableSet<T> left, ReadonlyObservableSet<T> right) => !left.Equals(right);
     }
 }

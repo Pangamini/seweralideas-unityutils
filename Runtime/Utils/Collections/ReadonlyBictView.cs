@@ -1,16 +1,16 @@
 #nullable enable
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using SeweralIdeas.UnityUtils;
 
 namespace SeweralIdeas.Collections
 {
-    public readonly struct ReadonlyBictView<TKey, TVal> : IReadOnlyBictionary<TKey, TVal>
+    public readonly struct ReadonlyBictView<TKey, TVal> : IReadOnlyBictionary<TKey, TVal>, IEquatable<ReadonlyBictView<TKey, TVal>>
     {
-        private static readonly Bictionary<TKey, TVal> Empty = new();
         private readonly        Bictionary<TKey, TVal> m_bict;
         
-        public ReadonlyBictView(Bictionary<TKey, TVal> bict) => m_bict = bict;
+        public ReadonlyBictView(Bictionary<TKey, TVal>? bict) => m_bict = bict!;
         
         public int Count => m_bict.Count;
         public bool ContainsKey(TKey key) => m_bict.ContainsKey(key);
@@ -25,5 +25,10 @@ namespace SeweralIdeas.Collections
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         IEnumerable<TKey> IReadOnlyDictionary<TKey, TVal>.Keys => m_bict.Keys;
         IEnumerable<TVal> IReadOnlyDictionary<TKey, TVal>.Values => m_bict.Values;
+        public bool Equals(ReadonlyBictView<TKey, TVal> other) => m_bict == other.m_bict;
+        public override bool Equals(object? obj) => obj is ReadonlyBictView<TKey, TVal> other && Equals(other);
+        public override int GetHashCode() => m_bict.GetHashCode();
+        public static bool operator ==(ReadonlyBictView<TKey, TVal> left, ReadonlyBictView<TKey, TVal> right) => left.m_bict == right.m_bict;
+        public static bool operator !=(ReadonlyBictView<TKey, TVal> left, ReadonlyBictView<TKey, TVal> right) => left.m_bict != right.m_bict;
     }
 }
