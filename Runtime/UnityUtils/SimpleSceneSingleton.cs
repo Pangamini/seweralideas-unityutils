@@ -9,7 +9,9 @@ namespace SeweralIdeas.UnityUtils
             var instance = SceneSingleton<T>.GetInstance(scene);
             if(!instance)
             {
-                instance = new GameObject(typeof(T).Name).AddComponent<T>();
+                var go = new GameObject(typeof(T).Name);
+                SceneManager.MoveGameObjectToScene(go, scene);
+                instance = go.AddComponent<T>();
             }
             return instance;
         }
