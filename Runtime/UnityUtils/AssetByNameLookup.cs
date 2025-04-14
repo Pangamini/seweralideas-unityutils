@@ -155,5 +155,11 @@ namespace SeweralIdeas.UnityUtils
     public class AssetByNameLookup<T> : ScriptableObject where T:UnityEngine.Object
     {
         [SerializeField] private AssetByNameTable<T> m_table;
+        
+        public Dictionary<string, T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
+        public T this[string key] => m_table[key];
+        public int Count => m_table.Count;
+        public bool ContainsKey(string key) => m_table.ContainsKey(key);
+        public bool TryGetValue(string key, out T value) => m_table.TryGetValue(key, out value);
     }
 }
