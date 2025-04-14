@@ -36,12 +36,12 @@ namespace SeweralIdeas.UnityUtils
             {
                 (Direction.Left, false) => new(-_rectTransform.rect.width, 0),
                 (Direction.Right, false) => new(_rectTransform.rect.width, 0),
-                (Direction.Up, false) => new(0, -_rectTransform.rect.height),
-                (Direction.Down, false) => new(0, _rectTransform.rect.height),
+                (Direction.Up, false) => new(0, _rectTransform.rect.height),
+                (Direction.Down, false) => new(0, -_rectTransform.rect.height),
                 (Direction.Left, true) => new(-_travelDistance, 0),
                 (Direction.Right, true) => new(_travelDistance, 0),
-                (Direction.Up, true) => new(0, -_travelDistance),
-                (Direction.Down, true) => new(0, _travelDistance),
+                (Direction.Up, true) => new(0, _travelDistance),
+                (Direction.Down, true) => new(0, -_travelDistance),
                 _ => throw new ArgumentOutOfRangeException()
             };
 
