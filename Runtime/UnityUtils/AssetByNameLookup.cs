@@ -73,7 +73,7 @@ namespace SeweralIdeas.UnityUtils
             m_dictDirty = false;
         }
 
-        public int Count => m_dict.Count;
+        public int Count => m_list.Count;
 
         public bool ContainsKey(string key)
         {
@@ -95,6 +95,8 @@ namespace SeweralIdeas.UnityUtils
                 return m_dict[key];
             }
         }
+        
+        public T this[int index] => m_list[index];
 
         IEnumerable<string> IReadOnlyDictionary<string, T>.Keys
         {
@@ -152,14 +154,21 @@ namespace SeweralIdeas.UnityUtils
 
     }
     
-    public class AssetByNameLookup<T> : ScriptableObject where T:UnityEngine.Object
+    public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T> where T:UnityEngine.Object
     {
         [SerializeField] private AssetByNameTable<T> m_table;
-        
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
         public List<T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
         public T this[string key] => m_table[key];
         public int Count => m_table.Count;
         public bool ContainsKey(string key) => m_table.ContainsKey(key);
         public bool TryGetValue(string key, out T value) => m_table.TryGetValue(key, out value);
+        
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public T this[int index] => m_table[index];
     }
 }
