@@ -122,17 +122,17 @@ namespace SeweralIdeas.UnityUtils
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
 
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() => GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public Dictionary<string, T>.Enumerator GetEnumerator()
+        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator()
         {
             EnsureDictUpToDate();
             return m_dict.GetEnumerator();
         }
-        
-        
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public List<T>.Enumerator GetEnumerator() => m_list.GetEnumerator();
+
+
 #if UNITY_EDITOR
         protected override void Editor_AbstractFindAll()
         {
@@ -156,7 +156,7 @@ namespace SeweralIdeas.UnityUtils
     {
         [SerializeField] private AssetByNameTable<T> m_table;
         
-        public Dictionary<string, T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
+        public List<T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
         public T this[string key] => m_table[key];
         public int Count => m_table.Count;
         public bool ContainsKey(string key) => m_table.ContainsKey(key);
