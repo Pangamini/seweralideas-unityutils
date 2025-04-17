@@ -120,5 +120,11 @@ namespace SeweralIdeas.UnityUtils
         
         public int Count => m_forward.Count;
         public bool IsReadOnly => false;
+        
+        public void EnsureCapacity(int capacity)
+        {
+            m_forward.EnsureCapacity(capacity);
+            m_reverse.EnsureCapacity(capacity);
+        }
     }
 }

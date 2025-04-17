@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SeweralIdeas.UnityUtils
 {
@@ -30,88 +31,101 @@ namespace SeweralIdeas.UnityUtils
     public class AssetByNameTable<T> : AssetByNameTable, ISerializationCallbackReceiver, IAssetByNameTable<T>
         where T:UnityEngine.Object
     {
-        [SerializeField] private List<T> m_list = new();
-        [NonSerialized] private bool m_dictDirty;
+        [FormerlySerializedAs("m_list")]
+        [SerializeField] private List<T> _list = new();
+        [NonSerialized] private bool _dictDirty;
 
-        private readonly Dictionary<string, T> m_dict = new();
+        private readonly Bictionary<string, T> _dict = new();
 
         public void Clear()
         {
-            m_list.Clear();
-            m_dict.Clear();
-            m_dictDirty = false;
+            _list.Clear();
+            _dict.Clear();
+            _dictDirty = false;
         }
 
         public void Add(T asset)
         {
-            m_list.Add(asset);
-            m_dictDirty = true;
+            _list.Add(asset);
+            _dictDirty = true;
         }
         
         public void Remove(T asset)
         {
-            if (m_list.Remove(asset))
+            if (_list.Remove(asset))
             {
-                m_dictDirty = true;
+                _dictDirty = true;
             }
         }
         
         private void EnsureDictUpToDate()
         {
-            if (!m_dictDirty)
+            if (!_dictDirty)
                 return;
             
-            m_dict.Clear();
-            m_dict.EnsureCapacity(m_list.Count);
-            foreach (T element in m_list)
+            _dict.Clear();
+            _dict.EnsureCapacity(_list.Count);
+            foreach (T element in _list)
             {
                 if (element == null)
                     continue;
                 
                 var key = element.name;
-                if (m_dict.ContainsKey(key))
+                if (_dict.ContainsKey(key))
                 {
                     Debug.LogError($"{GetType().Name} contains duplicate key {key}");
                     continue;
                 }
                 
-                m_dict.Add(key, element);
+                _dict.Add(key, element);
             }
                 
-            m_dictDirty = false;
+            _dictDirty = false;
         }
 
-        public int Count => m_list.Count;
+        public int Count => _list.Count;
 
         public bool ContainsKey(string key)
         {
             EnsureDictUpToDate();
-            return m_dict.ContainsKey(key);
+            return _dict.ContainsKey(key);
         }
 
         public bool TryGetValue(string key, out T value)
         {
             EnsureDictUpToDate();
-            return m_dict.TryGetValue(key, out value);
+            return _dict.TryGetValue(key, out value);
         }
-
+        
+        public bool ContainsValue(T value)
+        {
+            EnsureDictUpToDate();
+            return _dict.ContainsValue(value);
+        }
+        
+        public bool TryGetKey(T value, out string key)
+        {
+            EnsureDictUpToDate();
+            return _dict.TryGetKey(value, out key);
+        }
+        
         public T this[string key]
         {
             get
             {
                 EnsureDictUpToDate();
-                return m_dict[key];
+                return _dict[key];
             }
         }
         
-        public T this[int index] => m_list[index];
+        public T this[int index] => _list[index];
 
         IEnumerable<string> IReadOnlyDictionary<string, T>.Keys
         {
             get
             {
                 EnsureDictUpToDate();
-                return m_dict.Keys;
+                return _dict.Keys;
             }
         }
         
@@ -120,39 +134,39 @@ namespace SeweralIdeas.UnityUtils
             get
             {
                 EnsureDictUpToDate();
-                return m_dict.Values;
+                return _dict.Values;
             }
         }
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
-            if(m_list != null)
-                m_list.Sort((lhs, rhs) => string.Compare(lhs?lhs.name:null, rhs?rhs.name:null, StringComparison.Ordinal));
+            if(_list != null)
+                _list.Sort((lhs, rhs) => string.Compare(lhs?lhs.name:null, rhs?rhs.name:null, StringComparison.Ordinal));
         }
 
-        void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
+        void ISerializationCallbackReceiver.OnAfterDeserialize() => _dictDirty = true;
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => m_list.GetEnumerator();
-        List<T>.Enumerator IAssetByNameTable<T>.GetEnumerator() => m_list.GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => m_list.GetEnumerator();
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => _list.GetEnumerator();
+        List<T>.Enumerator IAssetByNameTable<T>.GetEnumerator() => _list.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
         IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() => GetEnumerator();
         public Dictionary<string, T>.Enumerator GetEnumerator()
         {
             EnsureDictUpToDate();
-            return m_dict.GetEnumerator();
+            return _dict.GetEnumerator();
         }
 
 #if UNITY_EDITOR
         protected override void Editor_AbstractFindAll()
         {
-            m_dictDirty = true;
-            m_list.Clear();
+            _dictDirty = true;
+            _list.Clear();
             var guids = UnityEditor.AssetDatabase.FindAssets($"t:{typeof(T).Name}");
             foreach (var guid in guids)
             {
                 var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
                 T asset = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
-                m_list.Add(asset);
+                _list.Add(asset);
             }
 
             EnsureDictUpToDate();
@@ -163,22 +177,26 @@ namespace SeweralIdeas.UnityUtils
     public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T>, IAssetByNameTable<T>
         where T:UnityEngine.Object
     {
-        [SerializeField] private AssetByNameTable<T> m_table;
+        [FormerlySerializedAs("m_table")]
+        [SerializeField] private AssetByNameTable<T> _table;
 
-        public T this[string key] => m_table[key];
-        public T this[int index] => m_table[index];
-        
-        public IEnumerable<string> Keys { get; }
-        public IEnumerable<T> Values { get; }
-        public int Count => m_table.Count;
-        public bool ContainsKey(string key) => m_table.ContainsKey(key);
-        public bool TryGetValue(string key, out T value) => m_table.TryGetValue(key, out value);
+        public T this[string key] => _table[key];
+        public T this[int index] => _table[index];
 
-        List<T>.Enumerator IAssetByNameTable<T>.GetEnumerator() => ((IAssetByNameTable<T>)m_table).GetEnumerator();
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() => m_table.GetEnumerator();
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)m_table).GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)m_table).GetEnumerator();
-        public Dictionary<string, T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
-        
+        public int Count => _table.Count;
+        public bool ContainsKey(string key) => _table.ContainsKey(key);
+        public bool TryGetValue(string key, out T value) => _table.TryGetValue(key, out value);
+        public bool ContainsValue(T value) => _table.ContainsValue(value);
+        public IReadOnlyBictionary<T, string> Reversed { get; }
+        public bool TryGetKey(T value, out string key) => _table.TryGetKey(value, out key);
+
+        IEnumerable<string> IReadOnlyDictionary<string, T>.Keys => ((IReadOnlyDictionary<string, T>)_table).Keys;
+        IEnumerable<T> IReadOnlyDictionary<string, T>.Values => ((IReadOnlyDictionary<string, T>)_table).Values;
+        List<T>.Enumerator IAssetByNameTable<T>.GetEnumerator() => ((IAssetByNameTable<T>)_table).GetEnumerator();
+        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() => _table.GetEnumerator();
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)_table).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)_table).GetEnumerator();
+        public Dictionary<string, T>.Enumerator GetEnumerator() => _table.GetEnumerator();
+
     }
 }
