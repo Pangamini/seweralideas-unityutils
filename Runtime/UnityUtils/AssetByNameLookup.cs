@@ -25,6 +25,8 @@ namespace SeweralIdeas.UnityUtils
     {
         new List<T>.Enumerator GetEnumerator();
         new int Count { get; }
+        bool ContainsValue(T value);
+        bool TryGetKey(T value, out string key);
     }
     
     [Serializable]
