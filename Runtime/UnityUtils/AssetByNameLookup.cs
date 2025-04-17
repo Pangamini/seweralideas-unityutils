@@ -159,19 +159,25 @@ namespace SeweralIdeas.UnityUtils
 #endif
     }
     
-    public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T>
+    public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T>, IAssetByNameTable<T>
         where T:UnityEngine.Object
     {
         [SerializeField] private AssetByNameTable<T> m_table;
 
         public T this[string key] => m_table[key];
+        public T this[int index] => m_table[index];
+        
+        public IEnumerable<string> Keys { get; }
+        public IEnumerable<T> Values { get; }
         public int Count => m_table.Count;
         public bool ContainsKey(string key) => m_table.ContainsKey(key);
         public bool TryGetValue(string key, out T value) => m_table.TryGetValue(key, out value);
 
+        List<T>.Enumerator IAssetByNameTable<T>.GetEnumerator() => ((IAssetByNameTable<T>)m_table).GetEnumerator();
+        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() => m_table.GetEnumerator();
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)m_table).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)m_table).GetEnumerator();
         public Dictionary<string, T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
-        public T this[int index] => m_table[index];
+        
     }
 }
