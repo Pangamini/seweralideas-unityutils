@@ -18,9 +18,16 @@ namespace SeweralIdeas.UnityUtils
         protected abstract void Editor_AbstractFindAll();
 #endif
     }
+
+    public interface IAssetByNameTable<T> : IReadOnlyDictionary<string, T>, IReadOnlyList<T>
+        where T : UnityEngine.Object
+    {
+        new List<T>.Enumerator GetEnumerator();
+    }
     
     [Serializable]
-    public class AssetByNameTable<T> : AssetByNameTable, ISerializationCallbackReceiver, IReadOnlyDictionary<string, T> where T:UnityEngine.Object
+    public class AssetByNameTable<T> : AssetByNameTable, ISerializationCallbackReceiver, IAssetByNameTable<T>
+        where T:UnityEngine.Object
     {
         [SerializeField] private List<T> m_list = new();
         [NonSerialized] private bool m_dictDirty;
@@ -124,16 +131,15 @@ namespace SeweralIdeas.UnityUtils
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() => m_dictDirty = true;
 
-        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator()
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => m_list.GetEnumerator();
+        List<T>.Enumerator IAssetByNameTable<T>.GetEnumerator() => m_list.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => m_list.GetEnumerator();
+        IEnumerator<KeyValuePair<string, T>> IEnumerable<KeyValuePair<string, T>>.GetEnumerator() => GetEnumerator();
+        public Dictionary<string, T>.Enumerator GetEnumerator()
         {
             EnsureDictUpToDate();
             return m_dict.GetEnumerator();
         }
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public List<T>.Enumerator GetEnumerator() => m_list.GetEnumerator();
-
 
 #if UNITY_EDITOR
         protected override void Editor_AbstractFindAll()
@@ -151,24 +157,21 @@ namespace SeweralIdeas.UnityUtils
             EnsureDictUpToDate();
         }
 #endif
-
     }
     
-    public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T> where T:UnityEngine.Object
+    public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T>
+        where T:UnityEngine.Object
     {
         [SerializeField] private AssetByNameTable<T> m_table;
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-        public List<T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
         public T this[string key] => m_table[key];
         public int Count => m_table.Count;
         public bool ContainsKey(string key) => m_table.ContainsKey(key);
         public bool TryGetValue(string key, out T value) => m_table.TryGetValue(key, out value);
-        
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)m_table).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)m_table).GetEnumerator();
+        public Dictionary<string, T>.Enumerator GetEnumerator() => m_table.GetEnumerator();
         public T this[int index] => m_table[index];
     }
 }
