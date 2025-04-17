@@ -23,6 +23,7 @@ namespace SeweralIdeas.UnityUtils
         where T : UnityEngine.Object
     {
         new List<T>.Enumerator GetEnumerator();
+        new int Count { get; }
     }
     
     [Serializable]
