@@ -48,7 +48,11 @@ namespace SeweralIdeas.Utils
                 m_onChanged += value;
                 value(Value, default);
             }
-            remove => m_onChanged -= value;
+            remove
+            {
+                value(default, Value);
+                m_onChanged -= value;
+            }
         }
 
         public struct Readonly : IReadonlyObservable<T>
