@@ -142,8 +142,6 @@ namespace SeweralIdeas.UnityUtils
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
-            if(_list != null)
-                _list.Sort((lhs, rhs) => string.Compare(lhs?lhs.name:null, rhs?rhs.name:null, StringComparison.Ordinal));
         }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize() => _dictDirty = true;
@@ -176,7 +174,7 @@ namespace SeweralIdeas.UnityUtils
 #endif
     }
     
-    public class AssetByNameLookup<T> : ScriptableObject, IReadOnlyList<T>, IAssetByNameTable<T>
+    public class AssetByNameLookup<T> : ScriptableObject, IAssetByNameTable<T>
         where T:UnityEngine.Object
     {
         [FormerlySerializedAs("m_table")]
