@@ -121,7 +121,7 @@ namespace SeweralIdeas.Utils
                 }
             }
 
-            public void Dispose()
+            public virtual void Dispose()
             {
                 if (ReferenceEquals(_owner, null))
                     return;
