@@ -15,7 +15,7 @@ namespace SeweralIdeas.UnityUtils
         where TParent : ParentComponent<TParent, TChild>
         where TChild : ChildComponent<TParent, TChild>
     {
-        private ObservableSet<TChild> m_children = new();
+        private readonly ObservableSet<TChild> m_children = new();
         internal bool ParentDestroyed => m_children == null;
 
         public ReadonlyObservableSet<TChild> Children => m_children.GetReadonly();
@@ -50,8 +50,8 @@ namespace SeweralIdeas.UnityUtils
             {
                 foreach(var child in Children)
                     children.Add(child);
-
-                m_children = null;
+                
+                m_children.Clear();
                 
                 foreach (var child in children)
                 {
