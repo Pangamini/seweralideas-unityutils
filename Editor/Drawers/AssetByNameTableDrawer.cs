@@ -11,13 +11,13 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
     {
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            var list = property.FindPropertyRelative("m_list");
+            var list = property.FindPropertyRelative("_list");
             return EditorGUI.GetPropertyHeight(list);
         }
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            var list = property.FindPropertyRelative("m_list");
+            var list = property.FindPropertyRelative("_list");
             EditorGUI.PropertyField(position, list, label);
         }
     }

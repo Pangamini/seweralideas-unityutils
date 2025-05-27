@@ -12,7 +12,7 @@ namespace SeweralIdeas.UnityUtils
     public class AdditiveSceneLoader
     {
         private          ToLoad?                           _queued               = null;
-        private          ToLoad?                           _currentLoadProcess   = null;
+        private readonly Observable<ToLoad?>               _currentLoadProcess   = new();
         private readonly Observable<Scene>                 _loadedScene          = new();
         private readonly HashSet<int>                      _alreadyLoadedHandles = new();
         private readonly UnityAction<Scene, LoadSceneMode> _onSomeSceneLoadedAction;
@@ -24,6 +24,7 @@ namespace SeweralIdeas.UnityUtils
         #endif
         
         public Observable<Scene>.Readonly LoadedScene => _loadedScene.ReadOnly;
+        public Observable<ToLoad?>.Readonly CurrentLoadProcess => _currentLoadProcess.ReadOnly;
         
         private static readonly Dictionary<int, AdditiveSceneLoader> OtherLoadersReservedHandles = new();
         private static readonly HashSet<AdditiveSceneLoader>         SubscribedLoaders           = new();
@@ -74,7 +75,7 @@ namespace SeweralIdeas.UnityUtils
             CheckDisposed();
             
             // If already loading something, queue and return
-            if (_currentLoadProcess != null)
+            if (_currentLoadProcess.Value != null)
             {
                 _queued = toLoad;
                 return;
@@ -106,7 +107,7 @@ namespace SeweralIdeas.UnityUtils
             }
             
             // Begin loading
-            _currentLoadProcess = toLoad;
+            _currentLoadProcess.Value = toLoad;
             SetSubscribed(true);
             SceneManager.LoadSceneAsync(toLoad.ScenePath, new LoadSceneParameters(LoadSceneMode.Additive, toLoad.PhysicsMode));
         }
@@ -115,10 +116,10 @@ namespace SeweralIdeas.UnityUtils
         {
             if (mode != LoadSceneMode.Additive)
                 return;
-            if (_currentLoadProcess == null)
+            if (_currentLoadProcess.Value == null)
                 return;
 
-            var toLoad = _currentLoadProcess.Value;
+            ToLoad toLoad = _currentLoadProcess.Value.Value;
             
             int toLoadBuildIndex = SceneUtility.GetBuildIndexByScenePath(toLoad.ScenePath);
             
@@ -143,7 +144,8 @@ namespace SeweralIdeas.UnityUtils
                 SetSceneToLoad(queued.Value);
 
             // Final callback, we're done!
-            
+
+            _currentLoadProcess.Value = null;
             OnMySceneLoaded(someLoadedScene);
         
         }
@@ -154,7 +156,7 @@ namespace SeweralIdeas.UnityUtils
         {
             if(loadedScene.handle != 0)
                 OtherLoadersReservedHandles.Add(loadedScene.handle, this);
-            _currentLoadProcess = null;
+            _currentLoadProcess.Value = null;
             _loadedScene.Value = loadedScene;
             SetSubscribed(false);
         }
@@ -162,7 +164,7 @@ namespace SeweralIdeas.UnityUtils
         public void AssignLoadedScene(Scene scene)
         {
             CheckDisposed();
-            if (_currentLoadProcess != null)
+            if (_currentLoadProcess.Value != null)
                 throw new InvalidOperationException("Assigning a loaded scene during loading is not supported.");
             OnMySceneLoaded(scene);
         }
