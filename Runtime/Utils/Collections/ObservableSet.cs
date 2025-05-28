@@ -40,7 +40,7 @@ namespace SeweralIdeas.Collections
 
     public class ObservableSet<T> : ICollection<T>, IObservableSet<T>
     {
-        private HashSet<T> m_set = new HashSet<T>();
+        private readonly HashSet<T> m_set = new HashSet<T>();
         public event Action<T>? Added;
         public event Action<T>? Removed;
         
@@ -52,37 +52,22 @@ namespace SeweralIdeas.Collections
         {
             if (m_set.Count == 0) 
                 return;
-            var set = m_set;
-            m_set = null!;   // to prevent anyone from modifying it from the callbacks
-            List<Exception>? exceptions = null;
 
-            try
+            if (Removed == null)
             {
-                if(Removed != null)
-                {
-                    Action<T> removed = Removed; // make a copy
-                    foreach (var obj in set)
-                    {
-                        try
-                        {
-                            removed(obj);
-                        }
-                        catch( Exception e )
-                        {
-                            exceptions ??= new List<Exception>();
-                            exceptions.Add(e);
-                        }
-                    }
-                }
+                m_set.Clear();
+                return;
             }
-            finally
-            {
-                set.Clear();
-                m_set = set;
-            }
+            
+            Action<T> removed = Removed;                    // make a copy, so we are not affected by callbacks subscribing more events
+            List<T> callList = new List<T>(m_set.Count);    // make a copy, so we only call Removed on currently present objects (also so we don't invalidate enumerators)
+            foreach(var elem in m_set)
+                callList.Add(elem);
 
-            if(exceptions != null)
-                throw new AggregateException(exceptions);
+            m_set.Clear();
+            
+            foreach (var obj in callList)
+                removed(obj);
         }
 
         bool ICollection<T>.IsReadOnly => false;
