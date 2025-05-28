@@ -42,7 +42,7 @@ namespace SeweralIdeas.Collections
 
     public class ObservableDictionary<TKey, TVal> : IObservableDictionary<TKey, TVal>
     {
-        private Dictionary<TKey, TVal> m_dict = new ();
+        private readonly Dictionary<TKey, TVal> m_dict = new ();
         public event Action<TKey, TVal>? Added;
         public event Action<TKey, TVal>? Removed;
         public int Count => m_dict.Count;
@@ -54,37 +54,22 @@ namespace SeweralIdeas.Collections
         {
             if (m_dict.Count == 0) 
                 return;
-            var dict = m_dict;
-            m_dict = null!;   // to prevent anyone from modifying it from the callbacks
-            List<Exception>? exceptions = null;
 
-            try
+            if (Removed == null)
             {
-                if(Removed != null)
-                {
-                    Action<TKey, TVal> removed = Removed; // make a copy
-                    foreach (var pair in dict)
-                    {
-                        try
-                        {
-                            removed(pair.Key, pair.Value);
-                        }
-                        catch( Exception e )
-                        {
-                            exceptions ??= new List<Exception>();
-                            exceptions.Add(e);
-                        }
-                    }
-                }
+                m_dict.Clear();
+                return;
             }
-            finally
-            {
-                dict.Clear();
-                m_dict = dict;
-            }
+            
+            Action<TKey, TVal> removed = Removed;                           // make a copy, so we are not affected by callbacks subscribing more events
+            List<KeyValuePair<TKey, TVal>> callList = new (m_dict.Count);   // make a copy, so we only call Removed on currently present objects (also so we don't invalidate enumerators)
+            foreach(var elem in m_dict)
+                callList.Add(elem);
 
-            if(exceptions != null)
-                throw new AggregateException(exceptions);
+            m_dict.Clear();
+            
+            foreach (var obj in callList)
+                removed(obj.Key, obj.Value);
         }
         
         public void Add( TKey key, TVal val )
