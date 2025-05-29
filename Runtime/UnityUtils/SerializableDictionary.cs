@@ -82,6 +82,12 @@ namespace SeweralIdeas.UnityUtils
                 EnsureDictUpToDate();
                 return m_dict[key];
             }
+            set
+            {
+                EnsureDictUpToDate();
+                m_dict[key] = value;
+                m_listDirty = true;
+            }
         }
 
         IEnumerable<TKey> IReadOnlyDictionary<TKey, TVal>.Keys
