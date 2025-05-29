@@ -23,7 +23,7 @@ namespace SeweralIdeas.UnityUtils
         }
 
 
-        [SerializeField] private List<Element> m_list;
+        [SerializeField] private List<Element> m_list = new();
         [NonSerialized] private bool m_dictDirty;
         [NonSerialized] private bool m_listDirty;
 
