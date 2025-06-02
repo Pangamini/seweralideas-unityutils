@@ -14,6 +14,9 @@ namespace SeweralIdeas.UnityUtils.Editor
         public override void OnPreviewGUI(Rect r, GUIStyle background)
         {
             var cursor = (Cursor)target;
+            if (!cursor.icon)
+                return;
+            
             var rect = r.GetAspectFittedRect((float)cursor.icon.width / cursor.icon.height);
             GUI.DrawTexture(rect, cursor.icon);
 
