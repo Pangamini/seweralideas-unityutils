@@ -6,6 +6,7 @@ using UnityEngine.Events;
 namespace SeweralIdeas.UnityUtils
 {
     [DefaultExecutionOrder(ExecOrder)]
+    [DisallowMultipleComponent]
     public class Tween : MonoBehaviour
     {
         public const int   ExecOrder = 0;
