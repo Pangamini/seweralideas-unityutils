@@ -4,12 +4,12 @@ namespace SeweralIdeas.UnityUtils.Drawers
 {
     public class ConditionAttribute : PropertyAttribute
     {
-        public string condition;
-        public bool invert;
+        public string Condition;
+        public bool   Invert;
 
         public ConditionAttribute(string value)
         {
-            condition = value;
+            Condition = value;
         }
     }
 }
