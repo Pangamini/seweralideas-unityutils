@@ -7,55 +7,76 @@ namespace SeweralIdeas.UnityUtils
 {
     public static class PhysicsUtil
     {
-        const int c_hitBufferSize = 32;
-        const int c_colliderBufferSize = 32;
-        private static readonly RaycastHit[] m_hitBuffer = new RaycastHit[c_hitBufferSize];
-        private static readonly Collider[] m_colliderBuffer = new Collider[c_colliderBufferSize];
+        private static RaycastHit[] _hitBuffer          = new RaycastHit[256];
+        private static Collider[]   _colliderBuffer     = new Collider[256];
+        private static float[]      _hitDistancesBuffer = new float[256];
+        private static bool         _colliderBufferLock;
 
-        private static readonly float[] m_hitDistancesBuffer = new float[c_hitBufferSize];
-        private static bool m_colliderBufferLock;
+        private static bool CheckBufferSize<T>(ref T[] buffer, int hitCount)
+        {
+            if (hitCount < buffer.Length)
+                return false;
+
+            var newSize = buffer.Length * 2;
+            buffer = new T[newSize];
+            return true;
+        }
+
 
         public static bool VisitSphereCast(Ray ray, float radius, out RaycastHit hitResult, float maxDistance, LayerMask layerMask, Visitor<RaycastHit> visitor)
         {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
             try
             {
-                m_colliderBufferLock = true;
-                var hitCount = Physics.SphereCastNonAlloc(ray, radius, m_hitBuffer, maxDistance, layerMask);
-                var ret = VisitHits(ray.origin, hitCount, m_hitBuffer, out hitResult, visitor);
-                ClearBuffer(m_hitBuffer, hitCount); // to avoid memory leaks, hits refer to components
+                _colliderBufferLock = true;
+
+                int hitCount;
+                do
+                {
+                    hitCount = Physics.SphereCastNonAlloc(ray, radius, _hitBuffer, maxDistance, layerMask);
+                } while (CheckBufferSize(ref _hitBuffer, hitCount));
+
+                var ret = VisitHits(ray.origin, hitCount, out hitResult, visitor);
+                ClearBuffer(_hitBuffer, hitCount); // to avoid memory leaks, hits refer to components
                 return ret;
             }
             catch
             {
-                ClearBuffer(m_hitBuffer, m_hitBuffer.Length);
+                ClearBuffer(_hitBuffer, _hitBuffer.Length);
                 throw;
             }
             finally
             {
-                m_colliderBufferLock = false;
+                _colliderBufferLock = false;
             }
         }
 
-        public static bool VisitSphereCast(this PhysicsScene scene, Ray ray, float radius, out RaycastHit hitResult, float maxDistance, LayerMask layerMask, Visitor<RaycastHit> visitor, QueryTriggerInteraction triggerInteraction)
+        public static bool VisitSphereCast(this PhysicsScene scene, Ray ray, float radius, out RaycastHit hitResult, float maxDistance, LayerMask layerMask, Visitor<RaycastHit> visitor,
+            QueryTriggerInteraction triggerInteraction)
         {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
             try
             {
-                m_colliderBufferLock = true;
-                var hitCount = scene.SphereCast(ray.origin, radius, ray.direction, m_hitBuffer, maxDistance, layerMask, triggerInteraction);
-                var ret = VisitHits(ray.origin, hitCount, m_hitBuffer, out hitResult, visitor);
-                ClearBuffer(m_hitBuffer, hitCount); // to avoid memory leaks, hits refer to components
+                _colliderBufferLock = true;
+                
+                int hitCount;
+                do
+                {
+                    hitCount = Physics.SphereCastNonAlloc(ray, radius, _hitBuffer, maxDistance, layerMask);
+                } while (CheckBufferSize(ref _hitBuffer, hitCount));
+                
+                var ret = VisitHits(ray.origin, hitCount, out hitResult, visitor);
+                ClearBuffer(_hitBuffer, hitCount); // to avoid memory leaks, hits refer to components
                 return ret;
             }
             catch
             {
-                ClearBuffer(m_hitBuffer, m_hitBuffer.Length);
+                ClearBuffer(_hitBuffer, _hitBuffer.Length);
                 throw;
             }
             finally
             {
-                m_colliderBufferLock = false;
+                _colliderBufferLock = false;
             }
         }
 
@@ -72,134 +93,170 @@ namespace SeweralIdeas.UnityUtils
 
             for (int i = 0; i < hitCount; ++i)
             {
-                result.Add(m_colliderBuffer[i]);
-                m_colliderBuffer[i] = null;
+                result.Add(_colliderBuffer[i]);
+                _colliderBuffer[i] = null;
             }
         }
 
         public static int OverlapSphere(Vector3 center, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
         {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
             try
             {
-                m_colliderBufferLock = true;
-                var hitCount = Physics.OverlapSphereNonAlloc(center, radius, m_colliderBuffer, layerMask, triggerInteraction);
+                _colliderBufferLock = true;
+                int hitCount;
+                do
+                {
+                    hitCount = Physics.OverlapSphereNonAlloc(center, radius, _colliderBuffer, layerMask, triggerInteraction);
+                } while (CheckBufferSize(ref _colliderBuffer, hitCount));
+                
                 AddColliderBufferToList(result, hitCount);
                 return hitCount;
             }
             catch
             {
-                ClearBuffer(m_colliderBuffer, m_colliderBuffer.Length);
+                ClearBuffer(_colliderBuffer, _colliderBuffer.Length);
                 throw;
             }
             finally
             {
-                m_colliderBufferLock = false;
+                _colliderBufferLock = false;
             }
         }
 
         public static int OverlapBox(Vector3 center, Vector3 extents, Quaternion rotation, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
         {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
             try
             {
-                m_colliderBufferLock = true;
-                var hitCount = Physics.OverlapBoxNonAlloc(center, extents, m_colliderBuffer, rotation, layerMask, triggerInteraction);
+                _colliderBufferLock = true;
+                
+                int hitCount;
+                do
+                {
+                    hitCount = Physics.OverlapBoxNonAlloc(center, extents, _colliderBuffer, rotation, layerMask, triggerInteraction);
+                } while (CheckBufferSize(ref _colliderBuffer, hitCount));
+                
                 AddColliderBufferToList(result, hitCount);
                 return hitCount;
             }
             catch
             {
-                ClearBuffer(m_colliderBuffer, m_colliderBuffer.Length);
+                ClearBuffer(_colliderBuffer, _colliderBuffer.Length);
                 throw;
             }
             finally
             {
-                m_colliderBufferLock = false;
-            }
-        }
-        
-        public static int OverlapCapsule(Vector3 point0, Vector3 point1, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
-        {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
-            try
-            {
-                m_colliderBufferLock = true;
-                var hitCount = Physics.OverlapCapsuleNonAlloc(point0, point1, radius, m_colliderBuffer, layerMask, triggerInteraction);
-                AddColliderBufferToList(result, hitCount);
-                return hitCount;
-            }
-            catch
-            {
-                ClearBuffer(m_colliderBuffer, m_colliderBuffer.Length);
-                throw;
-            }
-            finally
-            {
-                m_colliderBufferLock = false;
-            }
-        }
-        
-        public static int OverlapSphere(this PhysicsScene scene, Vector3 center, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
-        {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
-            try
-            {
-                m_colliderBufferLock = true;
-                var hitCount = scene.OverlapSphere(center, radius, m_colliderBuffer, layerMask, triggerInteraction);
-                AddColliderBufferToList(result, hitCount);
-                return hitCount;
-            }
-            catch
-            {
-                ClearBuffer(m_colliderBuffer, m_colliderBuffer.Length);
-                throw;
-            }
-            finally
-            {
-                m_colliderBufferLock = false;
+                _colliderBufferLock = false;
             }
         }
 
-        public static int OverlapBox(this PhysicsScene scene, Vector3 center, Vector3 extents, Quaternion rotation, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
+        public static int OverlapCapsule(Vector3 point0, Vector3 point1, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
         {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
             try
             {
-                m_colliderBufferLock = true;
-                var hitCount = scene.OverlapBox(center, extents, m_colliderBuffer, rotation, layerMask, triggerInteraction);
+                _colliderBufferLock = true;
+                
+                int hitCount;
+                do
+                {
+                    hitCount = Physics.OverlapCapsuleNonAlloc(point0, point1, radius, _colliderBuffer, layerMask, triggerInteraction);
+                } while (CheckBufferSize(ref _colliderBuffer, hitCount));
+                
                 AddColliderBufferToList(result, hitCount);
                 return hitCount;
             }
             catch
             {
-                ClearBuffer(m_colliderBuffer, m_colliderBuffer.Length);
+                ClearBuffer(_colliderBuffer, _colliderBuffer.Length);
                 throw;
             }
             finally
             {
-                m_colliderBufferLock = false;
+                _colliderBufferLock = false;
             }
         }
-        
-        public static int OverlapCapsule(this PhysicsScene scene, Vector3 point0, Vector3 point1, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
+
+        public static int OverlapSphere(this PhysicsScene scene, Vector3 center, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
         {
-            if (m_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
             try
             {
-                m_colliderBufferLock = true;
-                var hitCount = scene.OverlapCapsule(point0, point1, radius, m_colliderBuffer, layerMask, triggerInteraction);
+                _colliderBufferLock = true;
+                
+                int hitCount;
+                do
+                {
+                    hitCount = scene.OverlapSphere(center, radius, _colliderBuffer, layerMask, triggerInteraction);
+                } while (CheckBufferSize(ref _colliderBuffer, hitCount));
+
                 AddColliderBufferToList(result, hitCount);
                 return hitCount;
             }
             catch
             {
-                ClearBuffer(m_colliderBuffer, m_colliderBuffer.Length);
+                ClearBuffer(_colliderBuffer, _colliderBuffer.Length);
                 throw;
             }
             finally
             {
-                m_colliderBufferLock = false;
+                _colliderBufferLock = false;
+            }
+        }
+
+        public static int OverlapBox(this PhysicsScene scene, Vector3 center, Vector3 extents, Quaternion rotation, LayerMask layerMask, List<Collider> result,
+            QueryTriggerInteraction triggerInteraction)
+        {
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            try
+            {
+                _colliderBufferLock = true;
+                
+                int hitCount;
+                do
+                {
+                    hitCount = scene.OverlapBox(center, extents, _colliderBuffer, rotation, layerMask, triggerInteraction);
+                } while (CheckBufferSize(ref _colliderBuffer, hitCount));
+
+                AddColliderBufferToList(result, hitCount);
+                return hitCount;
+            }
+            catch
+            {
+                ClearBuffer(_colliderBuffer, _colliderBuffer.Length);
+                throw;
+            }
+            finally
+            {
+                _colliderBufferLock = false;
+            }
+        }
+
+        public static int OverlapCapsule(this PhysicsScene scene, Vector3 point0, Vector3 point1, float radius, LayerMask layerMask, List<Collider> result, QueryTriggerInteraction triggerInteraction)
+        {
+            if (_colliderBufferLock) throw new Exception("PhysicsUtil methods cannot be used recursively, as they reuse a buffer");
+            try
+            {
+                _colliderBufferLock = true;
+                
+                int hitCount;
+                do
+                {
+                    hitCount = scene.OverlapCapsule(point0, point1, radius, _colliderBuffer, layerMask, triggerInteraction);
+                } while (CheckBufferSize(ref _colliderBuffer, hitCount));
+
+                AddColliderBufferToList(result, hitCount);
+                return hitCount;
+            }
+            catch
+            {
+                ClearBuffer(_colliderBuffer, _colliderBuffer.Length);
+                throw;
+            }
+            finally
+            {
+                _colliderBufferLock = false;
             }
         }
 
@@ -211,26 +268,29 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
-        private static bool VisitHits(Vector3 origin, int hitCount, RaycastHit[] hitBuffer, out RaycastHit hitResult, Visitor<RaycastHit> visitor)
+        private static bool VisitHits(Vector3 origin, int hitCount, out RaycastHit hitResult, Visitor<RaycastHit> visitor)
         {
+            if(_hitDistancesBuffer.Length != _hitBuffer.Length)
+                _hitDistancesBuffer = new float[_hitBuffer.Length];
+            
             for (int i = 0; i < hitCount; ++i)
             {
-                var hit = hitBuffer[i];
-                if(hit.point == default && hit.distance == 0f)
+                var hit = _hitBuffer[i];
+                if (hit.point == default && hit.distance == 0f)
                 {
                     hit.point = origin;
-                    hitBuffer[i] = hit;
+                    _hitBuffer[i] = hit;
                 }
-                
-                m_hitDistancesBuffer[i] = (hit.point - origin).sqrMagnitude;
+
+                _hitDistancesBuffer[i] = (hit.point - origin).sqrMagnitude;
             }
 
-            Array.Sort(m_hitDistancesBuffer, hitBuffer, 0, hitCount);
+            Array.Sort(_hitDistancesBuffer, _hitBuffer, 0, hitCount);
 
             for (int i = 0; i < hitCount; ++i)
-                if (visitor(hitBuffer[i]))
+                if (visitor(_hitBuffer[i]))
                 {
-                    hitResult = hitBuffer[i];
+                    hitResult = _hitBuffer[i];
                     return true;
                 }
 
