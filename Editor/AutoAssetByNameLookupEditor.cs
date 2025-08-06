@@ -64,9 +64,10 @@ namespace SeweralIdeas.UnityUtils.Editor
                     if (autoAssetByNameLookup.Mode == IAutoAssetByNameLookup.SearchMode.None)
                         continue; // Skip those
                     
-                    using (ListPool<Object>.Get(out var elements))
+                    using (ListPool< (string, Object)>.Get(out var elements))
                     {
                         FindAssets(assetPath, autoAssetByNameLookup.GetElementType(), autoAssetByNameLookup.Mode, elements);
+                        elements.Sort((a, b) => string.Compare(a.Item1, b.Item1, StringComparison.OrdinalIgnoreCase));
                         
                         using var so = new SerializedObject(autoList);
 
@@ -79,7 +80,7 @@ namespace SeweralIdeas.UnityUtils.Editor
                         {
                             var element = elements[index];
                             var elementProp = listProp.GetArrayElementAtIndex(index);
-                            elementProp.objectReferenceValue = element;
+                            elementProp.objectReferenceValue = element.Item2;
                         }
 
                         so.ApplyModifiedProperties();
@@ -89,7 +90,7 @@ namespace SeweralIdeas.UnityUtils.Editor
         }
 
 
-        private static void FindAssets(string assetPath, Type elementType, IAutoAssetByNameLookup.SearchMode searchMode, List<Object> results)
+        private static void FindAssets(string assetPath, Type elementType, IAutoAssetByNameLookup.SearchMode searchMode, List<(string, Object)> results)
         {
             if (searchMode == IAutoAssetByNameLookup.SearchMode.None || elementType == null)
                 return;
@@ -132,7 +133,7 @@ namespace SeweralIdeas.UnityUtils.Editor
 
                 var obj = AssetDatabase.LoadAssetAtPath(path, elementType);
                 if (obj != null)
-                    results.Add(obj);
+                    results.Add((guid, obj));
             }
         }
     }
