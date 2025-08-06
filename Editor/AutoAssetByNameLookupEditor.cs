@@ -20,7 +20,9 @@ namespace SeweralIdeas.UnityUtils.Editor
             DrawPropertiesExcluding(serializedObject, Exclude);
             
             var tableProp = serializedObject.FindProperty("_table");
-            GUI.enabled = false;
+            var searchMode = serializedObject.FindProperty("_searchMode");
+            
+            GUI.enabled = !searchMode.hasMultipleDifferentValues && searchMode.enumValueIndex == (int)IAutoAssetByNameLookup.SearchMode.None;
             EditorGUILayout.PropertyField(tableProp);
             GUI.enabled = true;
             
@@ -59,6 +61,9 @@ namespace SeweralIdeas.UnityUtils.Editor
                     var assetPath = AssetDatabase.GetAssetPath(autoList);
                     var autoAssetByNameLookup = ((IAutoAssetByNameLookup)autoList);
 
+                    if (autoAssetByNameLookup.Mode == IAutoAssetByNameLookup.SearchMode.None)
+                        continue; // Skip those
+                    
                     using (ListPool<Object>.Get(out var elements))
                     {
                         FindAssets(assetPath, autoAssetByNameLookup.GetElementType(), autoAssetByNameLookup.Mode, elements);
