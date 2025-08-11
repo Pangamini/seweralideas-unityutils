@@ -10,34 +10,34 @@ namespace SeweralIdeas.Utils
         public event Action<T, T> Changed;
         public T Value { get; }
     }
-    
+
     [Serializable]
     public class Observable<T> : IReadonlyObservable<T>
     {
-        public Readonly ReadOnly =>  new Readonly(this);
+        public Readonly ReadOnly => new Readonly(this);
 #if UNITY_5_3_OR_NEWER
         [SerializeField]
 #endif
-        
-        private T         m_value;
-        private Action<T, T> m_onChanged;
+
+        private T _value;
+
+        private Action<T, T> _onChanged;
 
         public Observable(T defaultValue = default)
         {
-            m_value = defaultValue;
+            _value = defaultValue;
         }
 
         public T Value
         {
-            get => m_value;
+            get => _value;
             set
             {
-                
-                if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(m_value, value))
+                if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(_value, value))
                     return;
-                var old = m_value;
-                m_value = value;
-                m_onChanged?.Invoke(value, old);
+                var old = _value;
+                _value = value;
+                _onChanged?.Invoke(value, old);
             }
         }
 
@@ -45,34 +45,39 @@ namespace SeweralIdeas.Utils
         {
             add
             {
-                m_onChanged += value;
+                _onChanged += value;
                 value(Value, default);
             }
             remove
             {
                 value(default, Value);
-                m_onChanged -= value;
+                _onChanged -= value;
             }
         }
 
-        public struct Readonly : IReadonlyObservable<T>
+        public readonly struct Readonly : IReadonlyObservable<T>, IEquatable<Readonly>
         {
             public Readonly(Observable<T> observable)
             {
-                m_observable = observable;
+                _observable = observable;
             }
 
-            private Observable<T> m_observable;
-            public T Value => m_observable.Value;
+            private readonly Observable<T> _observable;
+            public T Value => _observable.Value;
 
             public event Action<T, T> Changed
             {
-                add => m_observable.Changed += value;
-                remove => m_observable.Changed -= value;
+                add => _observable.Changed += value;
+                remove => _observable.Changed -= value;
             }
 
             public static implicit operator Readonly(Observable<T> observable) => observable.ReadOnly;
+
+            public bool Equals(Readonly other) => _observable.Equals(other._observable);
+            public override bool Equals(object obj) => obj is Readonly other && Equals(other);
+            public override int GetHashCode() => _observable.GetHashCode();
+            public static bool operator ==(Readonly left, Readonly right) => left.Equals(right);
+            public static bool operator !=(Readonly left, Readonly right) => !left.Equals(right);
         }
     }
-
 }
