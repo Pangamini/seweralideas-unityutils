@@ -22,7 +22,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             var tableProp = serializedObject.FindProperty("_table");
             var searchMode = serializedObject.FindProperty("_searchMode");
             
-            GUI.enabled = !searchMode.hasMultipleDifferentValues && searchMode.enumValueIndex == (int)IAutoAssetByNameLookup.SearchMode.None;
+            GUI.enabled = !searchMode.hasMultipleDifferentValues && searchMode.enumValueIndex == (int)IAutoFindAssets.SearchMode.None;
             EditorGUILayout.PropertyField(tableProp);
             GUI.enabled = true;
             
@@ -39,7 +39,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             string[] movedAssets,
             string[] movedFromAssetPaths)
         {
-            var allTypes = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(typeof(AutoAssetByNameLookup<>), false, true));
+            var allTypes = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(typeof(IAutoFindAssets), false, false));
 
             using (HashSetPool<ScriptableObject>.Get(out var autoLists))
             {
@@ -59,10 +59,10 @@ namespace SeweralIdeas.UnityUtils.Editor
                 foreach (ScriptableObject autoList in autoLists)
                 {
                     var assetPath = AssetDatabase.GetAssetPath(autoList);
-                    var autoAssetByNameLookup = ((IAutoAssetByNameLookup)autoList);
+                    var autoAssetByNameLookup = ((IAutoFindAssets)autoList);
 
-                    if (autoAssetByNameLookup.Mode == IAutoAssetByNameLookup.SearchMode.None)
-                        continue; // Skip those
+                    if (autoAssetByNameLookup.Mode == IAutoFindAssets.SearchMode.None)
+                        continue; // Skip those 
                     
                     using (ListPool< (string, Object)>.Get(out var elements))
                     {
@@ -70,19 +70,18 @@ namespace SeweralIdeas.UnityUtils.Editor
                         elements.Sort((a, b) => string.Compare(a.Item1, b.Item1, StringComparison.OrdinalIgnoreCase));
                         
                         using var so = new SerializedObject(autoList);
-
-                        var tableProp = so.FindProperty("_table");
-                        var listProp = tableProp.FindPropertyRelative("_list");
+                        
+                        var listProp = so.FindProperty(autoAssetByNameLookup.GetAssetArrayPath());
                         
                         listProp.arraySize = elements.Count;
-
+                        
                         for (var index = 0; index < elements.Count; index++)
                         {
                             var element = elements[index];
                             var elementProp = listProp.GetArrayElementAtIndex(index);
                             elementProp.objectReferenceValue = element.Item2;
                         }
-
+                        
                         so.ApplyModifiedProperties();
                     }
                 }
@@ -90,9 +89,9 @@ namespace SeweralIdeas.UnityUtils.Editor
         }
 
 
-        private static void FindAssets(string assetPath, Type elementType, IAutoAssetByNameLookup.SearchMode searchMode, List<(string, Object)> results)
+        private static void FindAssets(string assetPath, Type elementType, IAutoFindAssets.SearchMode searchMode, List<(string, Object)> results)
         {
-            if (searchMode == IAutoAssetByNameLookup.SearchMode.None || elementType == null)
+            if (searchMode == IAutoFindAssets.SearchMode.None || elementType == null)
                 return;
 
             string filter = $"t:{elementType.Name}";
@@ -102,8 +101,8 @@ namespace SeweralIdeas.UnityUtils.Editor
 
             switch (searchMode)
             {
-                case IAutoAssetByNameLookup.SearchMode.Folder:
-                case IAutoAssetByNameLookup.SearchMode.FolderAndSubfolders:
+                case IAutoFindAssets.SearchMode.Folder:
+                case IAutoFindAssets.SearchMode.FolderAndSubfolders:
                 {
                     folderPath = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
                     if (!string.IsNullOrEmpty(folderPath) && AssetDatabase.IsValidFolder(folderPath))
@@ -111,11 +110,11 @@ namespace SeweralIdeas.UnityUtils.Editor
                 }
                     break;
 
-                case IAutoAssetByNameLookup.SearchMode.Project:
+                case IAutoFindAssets.SearchMode.Project:
                     break; // null searchFolders searches whole project
             }
 
-            var guids = AssetDatabase.FindAssets(filter, searchMode == IAutoAssetByNameLookup.SearchMode.Project ? null : searchFolders.ToArray());
+            var guids = AssetDatabase.FindAssets(filter, searchMode == IAutoFindAssets.SearchMode.Project ? null : searchFolders.ToArray());
 
             foreach (var guid in guids)
             {
@@ -124,7 +123,7 @@ namespace SeweralIdeas.UnityUtils.Editor
                     continue;
                 
                 // Exclude subfolders if in "Folder" mode
-                if (searchMode == IAutoAssetByNameLookup.SearchMode.Folder && folderPath != null)
+                if (searchMode == IAutoFindAssets.SearchMode.Folder && folderPath != null)
                 {
                     string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
                     if (!string.Equals(parent, folderPath, StringComparison.OrdinalIgnoreCase))
