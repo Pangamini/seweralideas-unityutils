@@ -4,10 +4,12 @@ using Object = UnityEngine.Object;
 
 namespace SeweralIdeas.UnityUtils
 {
-    public interface IAutoAssetByNameLookup
+    public interface IAutoFindAssets
     {
         SearchMode Mode { get; }
-        public Type GetElementType();
+        Type GetElementType();
+
+        string GetAssetArrayPath();
         
         public enum SearchMode
         {
@@ -19,11 +21,13 @@ namespace SeweralIdeas.UnityUtils
 
     }
     
-    public class AutoAssetByNameLookup<T> : AssetByNameLookup<T>, IAutoAssetByNameLookup where T : Object
+    public class AutoAssetByNameLookup<T> : AssetByNameLookup<T>, IAutoFindAssets where T : Object
     {
-        [SerializeField] private IAutoAssetByNameLookup.SearchMode _searchMode;
+        [SerializeField] private IAutoFindAssets.SearchMode _searchMode;
 
-        public IAutoAssetByNameLookup.SearchMode Mode => _searchMode;
+        public IAutoFindAssets.SearchMode Mode => _searchMode;
         public Type GetElementType() => typeof(T);
+
+        string IAutoFindAssets.GetAssetArrayPath() => "_table._list";
     }
 }
