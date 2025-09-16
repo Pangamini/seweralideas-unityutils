@@ -14,9 +14,16 @@ namespace SeweralIdeas.UnityUtils
         private static          float[]      _hitDistancesBuffer     = new float[256];
         private static readonly int[]        LayerCollisionMaskCache = new int[32];
         private static          bool         _colliderBufferLock;
-        private static          bool         _layerMaskCacheInit;
+        private static          bool         _layerMaskCacheInitialized;
 
         public delegate bool ColliderFilter(Collider collider);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Reset()
+        {
+            _layerMaskCacheInitialized  = false;
+        }
+
 
         public static bool CheckGameObject(
             GameObject gameObject,
@@ -28,21 +35,15 @@ namespace SeweralIdeas.UnityUtils
             QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
         {
             using (ListPool<Collider>.Get(out var colliders))
+            using (ListPool<Matrix4x4>.Get(out var relativeMatrices))
             {
                 gameObject.GetComponentsInChildren(colliders);
-                foreach (var collider in colliders)
-                {
-                    GetChildWorldTransformRelativeTo(gameObject.transform, collider.transform, position, rotation,
-                        scale, out var colliderPos, out var colliderRot, out var colliderScale);
-
-                    var mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
-                    if (CheckCollider(collider, colliderPos, colliderRot, colliderScale, mask, qti, filter))
-                        return true;
-                }
+                GetRelativeMatrices(gameObject.transform, colliders, relativeMatrices);
+                
+                return CheckGameObject(colliders, relativeMatrices, position, rotation, scale, filter, layerMask, qti);
             }
-
-            return false;
         }
+
         public static bool CheckGameObject(
             GameObject gameObject,
             Vector3 position,
@@ -52,17 +53,61 @@ namespace SeweralIdeas.UnityUtils
             QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
         {
             using (ListPool<Collider>.Get(out var colliders))
+            using (ListPool<Matrix4x4>.Get(out var relativeMatrices))
             {
                 gameObject.GetComponentsInChildren(colliders);
-                foreach (var collider in colliders)
-                {
-                    GetChildWorldTransformRelativeTo(gameObject.transform, collider.transform, position, rotation,
-                        scale, out var colliderPos, out var colliderRot, out var colliderScale);
+                GetRelativeMatrices(gameObject.transform, colliders, relativeMatrices);
+                
+                return CheckGameObject(colliders, relativeMatrices, position, rotation, scale, layerMask, qti);
+            }
+        }
 
-                    var mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
-                    if (CheckCollider(collider, colliderPos, colliderRot, colliderScale, mask, qti))
-                        return true;
-                }
+        public static bool CheckGameObject(
+            IList<Collider> colliders,
+            IList<Matrix4x4> relativeMatrices,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            int layerMask = Physics.AllLayers,
+            QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
+        {
+            for (var index = 0; index < colliders.Count; index++)
+            {
+                var collider = colliders[index];
+                var relativeMatrix = relativeMatrices[index];
+                
+                GetChildWorldTransformRelativeTo(relativeMatrix, position, rotation,
+                    scale, out var colliderPos, out var colliderRot, out var colliderScale);
+
+                var mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
+                if (CheckCollider(collider, colliderPos, colliderRot, colliderScale, mask, qti))
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static bool CheckGameObject(
+            IList<Collider> colliders,
+            IList<Matrix4x4> relativeMatrices,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            ColliderFilter filter,
+            int layerMask = Physics.AllLayers,
+            QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
+        {
+            for (var index = 0; index < colliders.Count; index++)
+            {
+                var collider = colliders[index];
+                var relativeMatrix = relativeMatrices[index];
+                
+                GetChildWorldTransformRelativeTo(relativeMatrix, position, rotation,
+                    scale, out var colliderPos, out var colliderRot, out var colliderScale);
+
+                var mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
+                if (CheckCollider(collider, colliderPos, colliderRot, colliderScale, mask, qti, filter))
+                    return true;
             }
 
             return false;
@@ -78,16 +123,35 @@ namespace SeweralIdeas.UnityUtils
             QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
         {
             using (ListPool<Collider>.Get(out var colliders))
+            using (ListPool<Matrix4x4>.Get(out var relativeMatrices))
             {
                 gameObject.GetComponentsInChildren(colliders);
-                foreach (var collider in colliders)
-                {
-                    GetChildWorldTransformRelativeTo(gameObject.transform, collider.transform, position, rotation,
-                        scale, out var colliderPos, out var colliderRot, out var colliderScale);
+                GetRelativeMatrices(gameObject.transform, colliders, relativeMatrices);
+                
+                OverlapGameObject(colliders, relativeMatrices, position , rotation, scale, result, layerMask, qti);
+            }
+        }
 
-                    int mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
-                    OverlapCollider(collider, colliderPos, colliderRot, colliderScale, mask, result, qti);
-                }
+        public static void OverlapGameObject(
+            IList<Collider> colliders,
+            IList<Matrix4x4> relativeMatrices,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            ICollection<Collider> result,
+            int layerMask = Physics.AllLayers,
+            QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
+        {
+            for (var index = 0; index < colliders.Count; index++)
+            {
+                var collider = colliders[index];
+                var relativeMatrix = relativeMatrices[index];
+                
+                GetChildWorldTransformRelativeTo(relativeMatrix, position, rotation,
+                    scale, out var colliderPos, out var colliderRot, out var colliderScale);
+
+                int mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
+                OverlapCollider(collider, colliderPos, colliderRot, colliderScale, mask, result, qti);
             }
         }
 
@@ -205,17 +269,18 @@ namespace SeweralIdeas.UnityUtils
 
         public static LayerMask GetLayerCollisionMask(int layer)
         {
-            if (!_layerMaskCacheInit)
+            if (!_layerMaskCacheInitialized)
             {
-                _layerMaskCacheInit = true;
                 for (int i = 0; i < 32; i++)
-                    LayerCollisionMaskCache[i] = -1;
+                    LayerCollisionMaskCache[i] = ComputeLayerCollisionMask(i);
+                _layerMaskCacheInitialized = true;
             }
 
-            int cached = LayerCollisionMaskCache[layer];
-            if (cached != -1)
-                return cached;
+            return LayerCollisionMaskCache[layer];
+        }
 
+        private static int ComputeLayerCollisionMask(int layer)
+        {
             int mask = 0;
             for (int other = 0; other < 32; other++)
             {
@@ -223,12 +288,11 @@ namespace SeweralIdeas.UnityUtils
                     mask |= 1 << other;
             }
 
-            LayerCollisionMaskCache[layer] = mask;
             return mask;
         }
 
         // Recursively computes the local matrix from root to child
-        private static Matrix4x4 GetRelativeMatrix(Transform root, Transform target)
+        public static Matrix4x4 GetRelativeMatrix(Transform root, Transform target)
         {
             Matrix4x4 matrix = Matrix4x4.identity;
             Transform current = target;
@@ -243,8 +307,14 @@ namespace SeweralIdeas.UnityUtils
 
             return matrix;
         }
+        
+        public static void GetRelativeMatrices(Transform root, List<Collider> colliders, List<Matrix4x4> result)
+        {
+            foreach (var coll in colliders)
+                result.Add(GetRelativeMatrix(root, coll.transform));
+        }
 
-        private static void GetChildWorldTransformRelativeTo(
+        public static void GetChildWorldTransformRelativeTo(
             Transform prefabRoot,
             Transform child,
             Vector3 desiredPosition,
@@ -256,10 +326,20 @@ namespace SeweralIdeas.UnityUtils
         {
             // Step 1: Get the local transform matrix from the root to the child
             Matrix4x4 relativeMatrix = GetRelativeMatrix(prefabRoot, child);
-
+            GetChildWorldTransformRelativeTo(relativeMatrix, desiredPosition, desiredRotation, desiredScale, out worldPosition, out worldRotation, out worldScale);
+        }
+        
+        public static void GetChildWorldTransformRelativeTo(
+            Matrix4x4 relativeMatrix,
+            Vector3 desiredPosition,
+            Quaternion desiredRotation,
+            Vector3 desiredScale,
+            out Vector3 worldPosition,
+            out Quaternion worldRotation,
+            out Vector3 worldScale)
+        {
             // Step 2: Create the hypothetical root transform matrix
-            Matrix4x4 rootMatrix =
-                Matrix4x4.TRS(desiredPosition, desiredRotation, desiredScale);
+            Matrix4x4 rootMatrix = Matrix4x4.TRS(desiredPosition, desiredRotation, desiredScale);
 
             // Step 3: Compute the world matrix for the child
             Matrix4x4 childWorldMatrix = rootMatrix * relativeMatrix;
