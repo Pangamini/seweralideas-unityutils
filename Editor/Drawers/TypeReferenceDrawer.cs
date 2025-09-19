@@ -21,9 +21,9 @@ namespace SeweralIdeas.UnityUtils.Editor
             else
                 stringProperty = property.FindPropertyRelative("_typeName");
 
-            var type1 = Type.GetType(stringProperty.stringValue);
+            var refType = Type.GetType(stringProperty.stringValue);
             
-            var displayName = stringProperty.hasMultipleDifferentValues? new GUIContent("-") : new GUIContent(type1?.Name ?? string.Empty, HierarchyIcons.GetTexture(type1));
+            var displayName = stringProperty.hasMultipleDifferentValues? new GUIContent("-") : new GUIContent(refType?.Name ?? string.Empty, refType != null?HierarchyIcons.GetTexture(refType):null);
             
             if(GUI.Button(buttonRect, displayName, EditorStyles.popup))
             {
