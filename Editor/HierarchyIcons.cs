@@ -12,7 +12,8 @@ namespace SeweralIdeas.UnityUtils
     public static class HierarchyIcons
     {
         static readonly Dictionary<Type, Texture> Icons = new Dictionary<Type, Texture>();
-
+        public static Texture NullTypeIcon => null;
+        
         public static bool GetTexture(Type type, out Texture texture)
         {
             return Icons.TryGetValue(type, out texture);
@@ -20,6 +21,8 @@ namespace SeweralIdeas.UnityUtils
 
         public static Texture GetTexture(Type type)
         {
+            if (type == null)
+                return NullTypeIcon;
             Icons.TryGetValue(type, out Texture texture);
             return texture;
         }
