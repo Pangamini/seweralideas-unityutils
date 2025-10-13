@@ -12,53 +12,37 @@ namespace SeweralIdeas.Utils
 
     public class MultiControl<T> : IComparer<MultiControl<T>.Request>
     {
-        private T m_defaultValue;
-        private SortedSet<Request> m_requests;
+        private readonly T                  _defaultValue;
+        private readonly SortedSet<Request> _requests;
+        private readonly Observable<T>      _observable;
 
-        private T m_value;
-
-        public T Value
-        {
-            get { return m_value; }
-            private set
-            {
-                if (EqualityComparer<T>.Default.Equals(m_value, value))
-                    return;
-                m_value = value;
-                ValueChanged?.Invoke(Value);
-            }
-        }
+        public Observable<T>.Readonly Observable => _observable;
 
         public MultiControl(T defaultValue = default)
         {
-            m_requests = new SortedSet<Request>(this);
-            m_defaultValue = defaultValue;
-            m_value = m_defaultValue;
+            _requests = new SortedSet<Request>(this);
+            _defaultValue = defaultValue;
+            _observable = new(_defaultValue);
         }
 
-        public MultiControl(T defaultValue, Action<T> callback) : this(defaultValue)
+        public MultiControl(T defaultValue, Action<T, T> callback) : this(defaultValue)
         {
-            ValueChanged += callback;
+            _observable.Changed += callback;
         }
 
-        public event Action<T> ValueChanged;
-
-        int IComparer<Request>.Compare(Request x, Request y)
-        {
-            return CompareRequests(x, y);
-        }
+        int IComparer<Request>.Compare(Request x, Request y) => CompareRequests(x, y);
 
         private static int CompareRequests(Request lhs, Request rhs)
         {
-            if(ReferenceEquals(lhs, rhs))
+            if (ReferenceEquals(lhs, rhs))
                 return 0;
-            
+
             int result = -lhs.Priority.CompareTo(rhs.Priority);
-            if(result != 0)
+            if (result != 0)
                 return result;
-            
+
             result = lhs.UniqueId.CompareTo(rhs.UniqueId);
-            Debug.Assert(result != 0);  // can't be, we compared ReferenceEquals
+            Debug.Assert(result != 0); // can't be, we compared ReferenceEquals
             return result;
         }
 
@@ -69,93 +53,88 @@ namespace SeweralIdeas.Utils
 
         private void AddRequest(Request request)
         {
-            bool added = m_requests.Add(request);
+            bool added = _requests.Add(request);
             Debug.Assert(added);
             OnRequestChanged(request);
         }
 
         private void RemoveRequest(Request request)
         {
-            bool removed = m_requests.Remove(request);
+            bool removed = _requests.Remove(request);
             Debug.Assert(removed);
             OnRequestChanged(request);
         }
 
         private void OnRequestChanged(Request changedRequest)
         {
-            var value = m_defaultValue;
-            
-            foreach(var request in m_requests)
+            var value = _defaultValue;
+
+            foreach (var request in _requests)
             {
                 Debug.Assert(request.Enabled);
                 value = request.Value;
                 break;
             }
 
-            Value = value;
+            _observable.Value = value;
         }
 
         public class Request : IMultiControlRequest
         {
-            private static int idCounter = 0;
+            private static int _idCounter = 0;
 
-            public Request(string name, int priority, MultiControl<T> multiControl, T value = default, bool enabled = true)
-            {
-                Name = name;
-                if (multiControl == null)
-                    throw new ArgumentNullException();
-                m_owner = multiControl;
-                Priority = priority;
-                Value = value;
-                UniqueId = idCounter++;
-                Enabled = enabled;
-            }
+            private MultiControl<T> _owner;
+            private T               _value;
+            private bool            _enabled = false;
 
             public readonly int UniqueId;
             public readonly int Priority;
 
-
-            private MultiControl<T> m_owner;
+            public Request(string name, int priority, MultiControl<T> multiControl, T value = default, bool enabled = true)
+            {
+                Name = name;
+                _owner = multiControl ?? throw new ArgumentNullException();
+                Priority = priority;
+                Value = value;
+                UniqueId = _idCounter++;
+                Enabled = enabled;
+            }
 
             public string Name { get; set; }
 
-            private T m_value;
-
             public T Value
             {
-                get { return m_value; }
+                get => _value;
                 set
                 {
-                    if (EqualityComparer<T>.Default.Equals(m_value, value)) return;
-                    m_value = value;
+                    if (EqualityComparer<T>.Default.Equals(_value, value)) return;
+                    _value = value;
                     if (Enabled)
-                        m_owner.OnRequestChanged(this);
+                        _owner.OnRequestChanged(this);
                 }
             }
 
-            private bool m_enabled = false;
-
             public bool Enabled
             {
-                get { return m_enabled; }
+                get => _enabled;
                 set
                 {
-                    if (m_enabled == value) return;
-                    m_enabled = value;
-                    if (m_enabled)
-                        m_owner.AddRequest(this);
+                    if (_enabled == value) return;
+                    _enabled = value;
+                    if (_enabled)
+                        _owner.AddRequest(this);
                     else
-                        m_owner.RemoveRequest(this);
+                        _owner.RemoveRequest(this);
                 }
             }
 
             public void Dispose()
             {
-                if (ReferenceEquals(m_owner, null))
+                if (ReferenceEquals(_owner, null))
                     return;
                 Enabled = false;
-                m_owner = null;
-                m_value = default;
+                _owner = null;
+                _value = default;
                 GC.SuppressFinalize(this);
             }
 
@@ -170,10 +149,7 @@ namespace SeweralIdeas.Utils
 #endif
             }
 
-            public override string ToString()
-            {
-                return $"{Name}[{Priority}](value={Value}, {(Enabled ? "enabled" : "disabled")})";
-            }
+            public override string ToString() => $"{Name}[{Priority}](value={Value}, {(Enabled ? "enabled" : "disabled")})";
         }
     }
 }
