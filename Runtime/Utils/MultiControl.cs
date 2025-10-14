@@ -25,7 +25,7 @@ namespace SeweralIdeas.Utils
             _observable = new(_defaultValue);
         }
 
-        public MultiControl(T defaultValue, Action<T, T> callback) : this(defaultValue)
+        public MultiControl(T defaultValue, ObservableAction<T> callback) : this(defaultValue)
         {
             _observable.Changed += callback;
         }
