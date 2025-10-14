@@ -5,9 +5,11 @@ using UnityEngine;
 
 namespace SeweralIdeas.Utils
 {
+    public delegate void ObservableAction<in T>(T newValue, T oldValue);
+    
     public interface IReadonlyObservable<out T>
     {
-        public event Action<T, T> Changed;
+        public event ObservableAction<T> Changed;
         public T Value { get; }
     }
 
@@ -21,7 +23,7 @@ namespace SeweralIdeas.Utils
 
         private T _value;
 
-        private Action<T, T> _onChanged;
+        private ObservableAction<T> _onChanged;
 
         public Observable(T defaultValue = default)
         {
@@ -41,7 +43,7 @@ namespace SeweralIdeas.Utils
             }
         }
 
-        public event Action<T, T> Changed
+        public event ObservableAction<T> Changed
         {
             add
             {
@@ -65,7 +67,7 @@ namespace SeweralIdeas.Utils
             private readonly Observable<T> _observable;
             public T Value => _observable.Value;
 
-            public event Action<T, T> Changed
+            public event ObservableAction<T> Changed
             {
                 add => _observable.Changed += value;
                 remove => _observable.Changed -= value;
