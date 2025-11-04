@@ -5,11 +5,9 @@ namespace SeweralIdeas.UnityUtils
 {
     public abstract class TweenValue<T> : TweenComponent
     {
-        [ColorUsage(true, true)]
         [SerializeField]
         private T m_offValue;
 
-        [ColorUsage(true, true)]
         [SerializeField]
         private T m_onValue;
         
