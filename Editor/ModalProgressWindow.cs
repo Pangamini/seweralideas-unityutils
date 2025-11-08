@@ -1,24 +1,42 @@
 #nullable  enable
 using System;
 using UnityEditor;
+using UnityEditor.Overlays;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils.Editor
 {
     public abstract class ModalProgressWindow<TProgress> : EditorWindow
+        where TProgress : struct
     {
         protected abstract bool MoveNext(out TProgress progress);
         protected abstract void OnCancel();
         protected abstract bool DrawGUI(TProgress progress);
 
-        private bool _canceled = false;
-        
+        private bool      _started = false;
+        private bool      _canceled = false;
+        private bool      _finished = false;
+        private TProgress _progress;
+
         private void OnGUI()
         {
-            if(!MoveNext(out TProgress progress))
-                Close();
+            if(Event.current.type == EventType.Layout)
+            {
+                if(_started)
+                {
+                    if(!MoveNext(out _progress))
+                    {
+                        _finished = true;
+                        Close();
+                    }
+                }
+                else
+                {
+                    _started = true;
+                }
+            }
 
-            if(!DrawGUI(progress))
+            if(!DrawGUI(_progress))
                 Cancel();
             
             Repaint();
@@ -30,14 +48,15 @@ namespace SeweralIdeas.UnityUtils.Editor
                 return;
             
             _canceled = true;
-            OnCancel();
             Close();
+            OnCancel();
         }
 
         private void OnDestroy()
         {
-            if(_canceled)
+            if(_finished || _canceled)
                 return;
+            
             _canceled = true;
             OnCancel();
         }
