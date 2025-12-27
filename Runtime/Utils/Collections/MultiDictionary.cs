@@ -8,10 +8,13 @@ namespace SeweralIdeas.Collections
         private static readonly HashSet<TVal> Empty = new();
         
         private readonly Dictionary<TKey, HashSet<TVal>> m_dict;
-
-        public MultiDictionary() => m_dict = new Dictionary<TKey, HashSet<TVal>>();
-
-        public MultiDictionary(IEqualityComparer<TKey> comparer) => m_dict = new Dictionary<TKey, HashSet<TVal>>(comparer);
+        private readonly IEqualityComparer<TVal>?        _valueComparer;
+        
+        public MultiDictionary(IEqualityComparer<TKey>? keyComparer = null, IEqualityComparer<TVal>? valueComparer = null)
+        {
+            m_dict = keyComparer == null? new Dictionary<TKey, HashSet<TVal>>() : new Dictionary<TKey, HashSet<TVal>>(keyComparer);
+            _valueComparer = valueComparer;
+        }
 
         private HashSet<TVal>? TryGetList(TKey item) => m_dict.GetValueOrDefault(item);
 
@@ -20,18 +23,20 @@ namespace SeweralIdeas.Collections
             HashSet<TVal>? valList = TryGetList(key);
             if (valList == null)
             {
-                valList = new HashSet<TVal>();
+                valList = NewHashSet();
                 m_dict.Add(key, valList);
             }
             return valList.Add(val);
         }
+        
+        private HashSet<TVal> NewHashSet() => _valueComparer == null ? new HashSet<TVal>() : new HashSet<TVal>(_valueComparer);
 
         public bool Add(TKey key, TVal val, out bool keyAdded)
         {
             HashSet<TVal>? valList = TryGetList(key);
             if (valList == null)
             {
-                valList = new HashSet<TVal>();
+                valList = NewHashSet();
                 m_dict.Add(key, valList);
                 keyAdded = true;
             }
