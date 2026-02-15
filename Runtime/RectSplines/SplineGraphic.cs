@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Splines;
 using UnityEngine.UI;
 
 namespace SeweralIdeas.UnityUtils.SplineMesh
@@ -11,37 +10,36 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
         protected override void OnEnable()
         {
             base.OnEnable();
-            Spline.Changed += OnSplineChanged;
-            SplineContainer.SplineAdded += OnSplineContainerChanged;
-            SplineContainer.SplineRemoved += OnSplineContainerChanged;
+            SubscribeChanged();
         }
 
         protected override void OnDisable()
         {
-            Spline.Changed -= OnSplineChanged;
-            SplineContainer.SplineAdded -= OnSplineContainerChanged;
-            SplineContainer.SplineRemoved -= OnSplineContainerChanged;
+            UnsubscribeChanged();
             base.OnDisable();
         }
 
-        private void OnSplineChanged(Spline spline, int knotIndex, SplineModification modification)
+        private void SubscribeChanged()
         {
-            if (_splineContainer == null) return;
-            if (_splineIndex < 0 || _splineIndex >= _splineContainer.Splines.Count) return;
-            if (_splineContainer.Splines[_splineIndex] == spline)
-                SetVerticesDirty();
+            if (_splineContainer != null)
+                _splineContainer.Changed += OnContainerChanged;
         }
 
-        private void OnSplineContainerChanged(SplineContainer container, int index)
+        private void UnsubscribeChanged()
         {
-            if (container == _splineContainer)
-                SetVerticesDirty();
+            if (_splineContainer != null)
+                _splineContainer.Changed -= OnContainerChanged;
+        }
+
+        private void OnContainerChanged()
+        {
+            SetVerticesDirty();
         }
 
         [Header("Spline Settings")]
-        [SerializeField] private SplineContainer _splineContainer;
+        [SerializeField] private RectSplineContainer _splineContainer;
         [SerializeField] private int _splineIndex = 0;
-        [SerializeField] private float _width = 50f;
+        [SerializeField] private float _width = 0.1f;
 
         [Header("Fill Interval")]
         [SerializeField, Range(0f, 1f)] private float _fillStart = 0f;
@@ -60,12 +58,14 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
         private readonly List<int> _triangles = new List<int>();
         private readonly List<Vector4> _uvs = new List<Vector4>();
 
-        public SplineContainer SplineContainer
+        public RectSplineContainer SplineContainer
         {
             get => _splineContainer;
             set
             {
+                UnsubscribeChanged();
                 _splineContainer = value;
+                SubscribeChanged();
                 SetVerticesDirty();
             }
         }
@@ -124,10 +124,10 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
         {
             vh.Clear();
 
-            if (_splineContainer == null || _splineContainer.Splines.Count == 0)
+            if (_splineContainer == null || _splineContainer.SplineCount == 0)
                 return;
 
-            if (_splineIndex < 0 || _splineIndex >= _splineContainer.Splines.Count)
+            if (_splineIndex < 0 || _splineIndex >= _splineContainer.SplineCount)
                 return;
 
             if (_fillStart > _fillEnd)
@@ -136,18 +136,41 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
             if (_fillStart >= _fillEnd && !_enableCaps)
                 return;
 
-            Spline spline = _splineContainer.Splines[_splineIndex];
-            GenerateSplineMesh(spline, vh);
+            GenerateSplineMesh(vh);
         }
 
-        private void GenerateSplineMesh(Spline spline, VertexHelper vh)
+        /// <summary>
+        /// Converts a rect-local position from the container's RectTransform
+        /// into this graphic's local space.
+        /// </summary>
+        private Vector2 ContainerToLocal(Vector2 containerRectLocal)
+        {
+            Vector3 world = _splineContainer.RectTransform.TransformPoint(containerRectLocal);
+            Vector3 local = transform.InverseTransformPoint(world);
+            return new Vector2(local.x, local.y);
+        }
+
+        /// <summary>
+        /// Converts a rect-local direction from the container's RectTransform
+        /// into this graphic's local space.
+        /// </summary>
+        private Vector2 ContainerDirectionToLocal(Vector2 containerRectLocalDir)
+        {
+            Vector3 world = _splineContainer.RectTransform.TransformDirection(new Vector3(containerRectLocalDir.x, containerRectLocalDir.y, 0f));
+            Vector3 local = transform.InverseTransformDirection(world);
+            return new Vector2(local.x, local.y);
+        }
+
+        private void GenerateSplineMesh(VertexHelper vh)
         {
             _vertices.Clear();
             _colors.Clear();
             _triangles.Clear();
             _uvs.Clear();
 
-            float splineLength = spline.GetLength();
+            float widthPixels = _splineContainer.NormalizedScalarToRectLocal(_width);
+
+            float splineLength = _splineContainer.GetSplineLength(_splineIndex);
             int segmentCount = Mathf.Clamp(
                 Mathf.RoundToInt(splineLength * _segmentsPerUnit),
                 _minSegments,
@@ -163,16 +186,13 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
             if (_enableCaps)
             {
                 float normalizedT = startDist / splineLength;
-                Vector3 worldPos = _splineContainer.EvaluatePosition(_splineIndex, normalizedT);
-                Vector3 worldTangent = EvaluateTangentSafe(_splineIndex, normalizedT);
+                Vector2 localPos = ContainerToLocal(_splineContainer.EvaluatePosition(_splineIndex, normalizedT));
+                Vector2 localTangent = EvaluateTangentSafe(normalizedT).normalized;
+                Vector2 perpendicular = new Vector2(-localTangent.y, localTangent.x);
 
-                Vector3 localPos = transform.InverseTransformPoint(worldPos);
-                Vector3 localTangent = transform.InverseTransformDirection(worldTangent).normalized;
-                Vector3 perpendicular = new Vector3(-localTangent.y, localTangent.x, 0f).normalized;
+                float radius = widthPixels * 0.5f;
 
-                float radius = _width * 0.5f;
-
-                Vector3 capStart = localPos - localTangent * radius;
+                Vector2 capStart = localPos - localTangent * radius;
 
                 Vector3 capBackLeft = capStart - perpendicular * radius;
                 Vector3 capBackRight = capStart + perpendicular * radius;
@@ -184,10 +204,12 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
                 _vertices.Add(capFrontLeft);
                 _vertices.Add(capFrontRight);
 
-                _uvs.Add(EncodeCapDistanceUV(capBackLeft - localPos, localTangent, perpendicular, radius, false));
-                _uvs.Add(EncodeCapDistanceUV(capBackRight - localPos, localTangent, perpendicular, radius, false));
-                _uvs.Add(EncodeCapDistanceUV(capFrontLeft - localPos, localTangent, perpendicular, radius, false));
-                _uvs.Add(EncodeCapDistanceUV(capFrontRight - localPos, localTangent, perpendicular, radius, false));
+                Vector3 tangent3 = localTangent;
+                Vector3 perp3 = perpendicular;
+                _uvs.Add(EncodeCapDistanceUV(capBackLeft - (Vector3)localPos, tangent3, perp3, radius, false));
+                _uvs.Add(EncodeCapDistanceUV(capBackRight - (Vector3)localPos, tangent3, perp3, radius, false));
+                _uvs.Add(EncodeCapDistanceUV(capFrontLeft - (Vector3)localPos, tangent3, perp3, radius, false));
+                _uvs.Add(EncodeCapDistanceUV(capFrontRight - (Vector3)localPos, tangent3, perp3, radius, false));
 
                 _colors.Add(color);
                 _colors.Add(color);
@@ -214,16 +236,13 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
                 float currentDist = Mathf.Lerp(startDist, endDist, t);
                 float normalizedT = currentDist / splineLength;
 
-                Vector3 worldPos = _splineContainer.EvaluatePosition(_splineIndex, normalizedT);
-                Vector3 worldTangent = EvaluateTangentSafe(_splineIndex, normalizedT);
+                Vector2 localPos = ContainerToLocal(_splineContainer.EvaluatePosition(_splineIndex, normalizedT));
+                Vector2 localTangent = EvaluateTangentSafe(normalizedT).normalized;
 
-                Vector3 localPos = transform.InverseTransformPoint(worldPos);
-                Vector3 localTangent = transform.InverseTransformDirection(worldTangent).normalized;
+                Vector2 perpendicular = new Vector2(-localTangent.y, localTangent.x);
 
-                Vector3 perpendicular = new Vector3(-localTangent.y, localTangent.x, 0f).normalized;
-
-                Vector3 leftVertex = localPos - perpendicular * (_width * 0.5f);
-                Vector3 rightVertex = localPos + perpendicular * (_width * 0.5f);
+                Vector3 leftVertex = (Vector3)(localPos - perpendicular * (widthPixels * 0.5f));
+                Vector3 rightVertex = (Vector3)(localPos + perpendicular * (widthPixels * 0.5f));
 
                 _vertices.Add(leftVertex);
                 _vertices.Add(rightVertex);
@@ -254,16 +273,13 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
             if (_enableCaps)
             {
                 float normalizedT = endDist / splineLength;
-                Vector3 worldPos = _splineContainer.EvaluatePosition(_splineIndex, normalizedT);
-                Vector3 worldTangent = EvaluateTangentSafe(_splineIndex, normalizedT);
+                Vector2 localPos = ContainerToLocal(_splineContainer.EvaluatePosition(_splineIndex, normalizedT));
+                Vector2 localTangent = EvaluateTangentSafe(normalizedT).normalized;
+                Vector2 perpendicular = new Vector2(-localTangent.y, localTangent.x);
 
-                Vector3 localPos = transform.InverseTransformPoint(worldPos);
-                Vector3 localTangent = transform.InverseTransformDirection(worldTangent).normalized;
-                Vector3 perpendicular = new Vector3(-localTangent.y, localTangent.x, 0f).normalized;
+                float radius = widthPixels * 0.5f;
 
-                float radius = _width * 0.5f;
-
-                Vector3 capEnd = localPos + localTangent * radius;
+                Vector2 capEnd = localPos + localTangent * radius;
 
                 Vector3 capFrontLeft = localPos - perpendicular * radius;
                 Vector3 capFrontRight = localPos + perpendicular * radius;
@@ -277,10 +293,12 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
                 _vertices.Add(capBackLeft);
                 _vertices.Add(capBackRight);
 
-                _uvs.Add(EncodeCapDistanceUV(capFrontLeft - localPos, localTangent, perpendicular, radius, true));
-                _uvs.Add(EncodeCapDistanceUV(capFrontRight - localPos, localTangent, perpendicular, radius, true));
-                _uvs.Add(EncodeCapDistanceUV(capBackLeft - localPos, localTangent, perpendicular, radius, true));
-                _uvs.Add(EncodeCapDistanceUV(capBackRight - localPos, localTangent, perpendicular, radius, true));
+                Vector3 tangent3 = localTangent;
+                Vector3 perp3 = perpendicular;
+                _uvs.Add(EncodeCapDistanceUV(capFrontLeft - (Vector3)localPos, tangent3, perp3, radius, true));
+                _uvs.Add(EncodeCapDistanceUV(capFrontRight - (Vector3)localPos, tangent3, perp3, radius, true));
+                _uvs.Add(EncodeCapDistanceUV(capBackLeft - (Vector3)localPos, tangent3, perp3, radius, true));
+                _uvs.Add(EncodeCapDistanceUV(capBackRight - (Vector3)localPos, tangent3, perp3, radius, true));
 
                 _colors.Add(color);
                 _colors.Add(color);
@@ -308,40 +326,35 @@ namespace SeweralIdeas.UnityUtils.SplineMesh
             }
         }
 
-        private Vector3 EvaluateTangentSafe(int index, float t)
+        private Vector2 EvaluateTangentSafe(float t)
         {
-            Vector3 tangent = _splineContainer.EvaluateTangent(index, t);
+            Vector2 tangent = ContainerDirectionToLocal(_splineContainer.EvaluateTangent(_splineIndex, t));
             if (tangent.sqrMagnitude < 0.0001f)
             {
                 const float epsilon = 0.001f;
                 if (t < 0.5f)
-                    tangent = _splineContainer.EvaluateTangent(index, t + epsilon);
+                    tangent = ContainerDirectionToLocal(_splineContainer.EvaluateTangent(_splineIndex, t + epsilon));
                 else
-                    tangent = _splineContainer.EvaluateTangent(index, t - epsilon);
+                    tangent = ContainerDirectionToLocal(_splineContainer.EvaluateTangent(_splineIndex, t - epsilon));
             }
             if (tangent.sqrMagnitude < 0.0001f)
             {
                 const float epsilon = 0.001f;
                 float tA = Mathf.Clamp01(t - epsilon);
                 float tB = Mathf.Clamp01(t + epsilon);
-                tangent = _splineContainer.EvaluatePosition(index, tB) - _splineContainer.EvaluatePosition(index, tA);
+                tangent = ContainerToLocal(_splineContainer.EvaluatePosition(_splineIndex, tB))
+                        - ContainerToLocal(_splineContainer.EvaluatePosition(_splineIndex, tA));
             }
             return tangent;
         }
 
         private static Vector4 EncodeDistanceUV(float alongSpline, float perpendicular)
         {
-            // x: distance along spline (0-1)
-            // y: perpendicular distance (-1 to 1)
-            // z: region indicator (0 = start cap, 0.5 = main body, 1 = end cap)
             return new Vector4(alongSpline, perpendicular, 0.5f, 0f);
         }
 
         private static Vector4 EncodeCapDistanceUV(Vector3 offsetFromEndpoint, Vector3 tangent, Vector3 perpendicular, float radius, bool isEndCap)
         {
-            // x: offset along tangent / radius (-1 to 1)
-            // y: offset along perpendicular / radius (-1 to 1)
-            // z: region indicator (0 = start cap, 1 = end cap)
             float alongTangent = Vector3.Dot(offsetFromEndpoint, tangent) / radius;
             float alongPerpendicular = Vector3.Dot(offsetFromEndpoint, perpendicular) / radius;
 
