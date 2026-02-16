@@ -56,6 +56,8 @@ namespace SeweralIdeas.Utils
                 _onChanged -= value;
             }
         }
+        
+        private void UnsubscribeWithoutNotify(ObservableAction<T> listener) => _onChanged -= listener;
 
         public readonly struct Readonly : IReadonlyObservable<T>, IEquatable<Readonly>
         {
@@ -73,6 +75,8 @@ namespace SeweralIdeas.Utils
                 remove => _observable.Changed -= value;
             }
 
+            public void UnsubscribeWithoutNotify(ObservableAction<T> listener) => _observable.UnsubscribeWithoutNotify(listener);
+            
             public static implicit operator Readonly(Observable<T> observable) => observable.ReadOnly;
 
             public bool Equals(Readonly other) => _observable.Equals(other._observable);
