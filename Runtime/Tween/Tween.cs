@@ -29,7 +29,10 @@ namespace SeweralIdeas.UnityUtils
         private AnimationCurve m_curve = AnimationCurve.EaseInOut(0,0,1,1);
         
         [SerializeField]
-        private UnityEvent<float> m_onValueChanged;
+        private UnityEvent<float> m_onValueChanged = new();
+        
+        [SerializeField]
+        private UnityEvent<bool> m_onTargetValueChanged = new();
         
         private float m_velocity;
 
@@ -70,6 +73,7 @@ namespace SeweralIdeas.UnityUtils
                 
                 m_isOn = value;
                 enabled = true;
+                m_onTargetValueChanged.Invoke(m_isOn);
             }
         }
         
