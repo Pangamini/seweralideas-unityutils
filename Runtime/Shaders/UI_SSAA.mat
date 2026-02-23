@@ -61,7 +61,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Bias: 0
+    - _Bias: -1
     - _BumpScale: 1
     - _ColorMask: 15
     - _Cutoff: 0.5
