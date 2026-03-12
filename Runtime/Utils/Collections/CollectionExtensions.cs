@@ -118,6 +118,25 @@ namespace SeweralIdeas.Collections
             for (int i = 0; i < count; i++)
                 destination.Add(source[indices[i]]);
         }
+        
+        public static T[] PickRandomUnique<T>( this IReadOnlyList<T> source, int count)
+        {
+            int sourceCount = source.Count;
+            if (count > sourceCount)
+                throw new ArgumentOutOfRangeException(nameof(count));
+
+            Span<int> indices = stackalloc int[sourceCount];
+
+            for (int i = 0; i < sourceCount; i++)
+                indices[i] = i;
+
+            indices.PartialShuffle(count);
+
+            var destination = new T[count];
+            for (int i = 0; i < count; i++)
+                destination[i] = source[indices[i]];
+            return destination;
+        }
 
         public static void RemoveBySwap<T>(this List<T> list, int index)
         {
