@@ -34,6 +34,18 @@ namespace SeweralIdeas.UnityUtils
             Reversed = new Bictionary<TVal, TKey>(this);
         }
         
+        public Bictionary(Bictionary<TKey,TVal> source) : this()
+        {
+            foreach (KeyValuePair<TKey, TVal> keyValuePair in source)
+                Add(keyValuePair.Key, keyValuePair.Value);
+        }
+
+        public Bictionary(IEnumerable<KeyValuePair<TKey, TVal>> source) : this()
+        {
+            foreach (KeyValuePair<TKey, TVal> keyValuePair in source)
+                Add(keyValuePair.Key, keyValuePair.Value);
+        }
+
         // Reverse constructor
         private Bictionary(Bictionary<TVal, TKey> reversed)
         {
