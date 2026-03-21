@@ -1,20 +1,33 @@
-Shader "Custom/UI/UI-Supersampling"
+Shader "SeweralIdeas/UI/UI-Effects"
 {
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
-        _Bias ("Bias", float) = -1
+
+        // --- Supersampling ---
+        [HideInInspector][Toggle(UI_SSAA)] _UseSSAA ("Supersampling", Float) = 0
+        [HideInInspector] _Bias ("Bias", Float) = -1
+
+        // --- Saturation ---
+        [HideInInspector][Toggle(UI_SATURATION)] _UseSaturation ("Saturation", Float) = 0
+        [HideInInspector] _Saturation ("Amount", Float) = 1
+
+        // --- Dithering ---
+        [HideInInspector][Toggle(UI_DITHER)] _UseDither ("Dithering", Float) = 0
+        [HideInInspector] _DitherBitDepth ("Bit Depth", Float) = 8
+        [HideInInspector] _DitherSRGB ("sRGB Target", Float) = 1
+
+        // --- Unity UI ---
         _StencilComp ("Stencil Comparison", Float) = 8
         _Stencil ("Stencil ID", Float) = 0
         _StencilOp ("Stencil Operation", Float) = 0
         _StencilWriteMask ("Stencil Write Mask", Float) = 255
         _StencilReadMask ("Stencil Read Mask", Float) = 255
         _ColorMask ("Color Mask", Float) = 15
-        _Saturation("Saturation", Float) = 1
         [Toggle(UNITY_UI_ALPHACLIP)] _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
-        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Source Blend", Float) = 5 
-        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Destination Blend", Float) = 10 
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Source Blend", Float) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Destination Blend", Float) = 10
     }
 
     SubShader
@@ -52,12 +65,23 @@ Shader "Custom/UI/UI-Supersampling"
             #pragma fragment frag
             #pragma target 2.0
 
-            #include "UnityCG.cginc"
-            #include "UnityUI.cginc"
-            #include "SampleSSAA4.cginc"
+            #pragma shader_feature_local UI_SSAA
+            #pragma shader_feature_local UI_SATURATION
+            #pragma shader_feature_local UI_DITHER
 
             #pragma multi_compile __ UNITY_UI_CLIP_RECT
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
+
+            #include "UnityCG.cginc"
+            #include "UnityUI.cginc"
+
+            #if defined(UI_SSAA)
+            #include "SampleSSAA4.cginc"
+            #endif
+
+            #if defined(UI_DITHER)
+            #include "Dithering.cginc"
+            #endif
 
             struct appdata_t
             {
@@ -69,9 +93,9 @@ Shader "Custom/UI/UI-Supersampling"
 
             struct v2f
             {
-                float4 vertex   : SV_POSITION;
-                fixed4 color    : COLOR;
-                float2 texcoord  : TEXCOORD0;
+                float4 vertex        : SV_POSITION;
+                fixed4 color         : COLOR;
+                float2 texcoord      : TEXCOORD0;
                 float4 worldPosition : TEXCOORD1;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -81,8 +105,14 @@ Shader "Custom/UI/UI-Supersampling"
             fixed4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+
+            #if defined(UI_SSAA)
             float _Bias;
+            #endif
+
+            #if defined(UI_SATURATION)
             float _Saturation;
+            #endif
 
             v2f vert(appdata_t v)
             {
@@ -92,26 +122,35 @@ Shader "Custom/UI/UI-Supersampling"
                 OUT.worldPosition = v.vertex;
                 OUT.vertex = UnityObjectToClipPos(OUT.worldPosition);
                 OUT.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
-
                 OUT.color = v.color;
                 return OUT;
             }
 
             fixed4 frag(v2f IN) : SV_Target
             {
-                // half4 color = (tex2D(_MainTex, IN.texcoord) + _TextureSampleAdd) * IN.color;
-                float4 textureColor = (SampleSSAA4(_MainTex, IN.texcoord, _Bias) + _TextureSampleAdd) * IN.color;
-                float bwColor = (textureColor.x + textureColor.y + textureColor.z) / 3;
-                textureColor = lerp(float4(bwColor,bwColor,bwColor,textureColor.a), textureColor, _Saturation);
-                
-                float4 color = textureColor * _Color;
-                
+                #if defined(UI_SSAA)
+                float4 color = (SampleSSAA4(_MainTex, IN.texcoord, _Bias) + _TextureSampleAdd) * IN.color;
+                #else
+                float4 color = (tex2D(_MainTex, IN.texcoord) + _TextureSampleAdd) * IN.color;
+                #endif
+
+                #if defined(UI_SATURATION)
+                float bw = dot(color.rgb, float3(1.0/3.0, 1.0/3.0, 1.0/3.0));
+                color.rgb = lerp(float3(bw, bw, bw), color.rgb, _Saturation);
+                #endif
+
+                color *= _Color;
+
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
                 #endif
 
                 #ifdef UNITY_UI_ALPHACLIP
-                clip (color.a - 0.001);
+                clip(color.a - 0.001);
+                #endif
+
+                #if defined(UI_DITHER)
+                color = ApplyDither(color, IN.vertex.xy);
                 #endif
 
                 return color;
@@ -119,4 +158,6 @@ Shader "Custom/UI/UI-Supersampling"
         ENDCG
         }
     }
+
+    CustomEditor "UIEffectsShaderGUI"
 }
