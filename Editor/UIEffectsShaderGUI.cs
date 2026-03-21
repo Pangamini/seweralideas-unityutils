@@ -62,7 +62,7 @@ public class UIEffectsShaderGUI : ShaderGUI
             EditorGUI.indentLevel++;
             editor.ShaderProperty(srcBlend, "Source Blend");
             editor.ShaderProperty(dstBlend, "Destination Blend");
-            editor.ShaderProperty(colorMask, "Color Mask");
+            ColorMaskProperty(colorMask, "Color Mask");
             editor.ShaderProperty(alphaClip, "Use Alpha Clip");
             EditorGUI.indentLevel--;
         }
@@ -110,6 +110,36 @@ public class UIEffectsShaderGUI : ShaderGUI
             drawBody();
             EditorGUI.indentLevel--;
         }
+    }
+
+    private static void ColorMaskProperty(MaterialProperty prop, string label)
+    {
+        int mask = (int)prop.floatValue;
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.PrefixLabel(label);
+
+        bool r = (mask & 8) != 0;
+        bool g = (mask & 4) != 0;
+        bool b = (mask & 2) != 0;
+        bool a = (mask & 1) != 0;
+
+        EditorGUI.BeginChangeCheck();
+        r = GUILayout.Toggle(r, "R", "buttonLeft");
+        g = GUILayout.Toggle(g, "G", "buttonMid");
+        b = GUILayout.Toggle(b, "B", "buttonMid");
+        a = GUILayout.Toggle(a, "A", "buttonRight");
+        if (EditorGUI.EndChangeCheck())
+        {
+            int newMask = 0;
+            if (r) newMask |= 8;
+            if (g) newMask |= 4;
+            if (b) newMask |= 2;
+            if (a) newMask |= 1;
+            prop.floatValue = newMask;
+        }
+
+        EditorGUILayout.EndHorizontal();
     }
 
     private static void BoolShaderProperty(MaterialProperty prop, string label)
