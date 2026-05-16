@@ -12,6 +12,9 @@ namespace SeweralIdeas.UnityUtils
         private static          bool  _layerMaskCacheInitialized;
 
         public delegate bool Collider2DFilter(Collider2D collider);
+        public delegate bool RaycastHit2DFilter(RaycastHit2D hit);
+        // Convention (matches Collider2DFilter): returns true if the hit/collider is kept,
+        // false to skip — for casts, the next hit in distance order is tried.
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Reset()
@@ -533,6 +536,147 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
+        // ----- Filter-aware Cast overloads (skip hits the filter rejects) -----
+
+        public static bool CastGameObject(
+            GameObject gameObject,
+            Vector2 position,
+            float angle,
+            Vector2 scale,
+            Vector2 direction,
+            float distance,
+            out RaycastHit2D hit,
+            RaycastHit2DFilter filter,
+            int layerMask = Physics2D.AllLayers,
+            bool useTriggers = false)
+        {
+            using (ListPool<Collider2D>.Get(out var colliders))
+            using (ListPool<Matrix4x4>.Get(out var relativeMatrices))
+            {
+                gameObject.GetComponentsInChildren(colliders);
+                GetRelativeMatrices(gameObject.transform, colliders, relativeMatrices);
+
+                return CastGameObject(colliders, relativeMatrices, position, angle, scale, direction, distance, out hit, filter, layerMask, useTriggers);
+            }
+        }
+
+        public static bool CastGameObject(
+            IList<Collider2D> colliders,
+            IList<Matrix4x4> relativeMatrices,
+            Vector2 position,
+            float angle,
+            Vector2 scale,
+            Vector2 direction,
+            float distance,
+            out RaycastHit2D hit,
+            RaycastHit2DFilter filter,
+            int layerMask = Physics2D.AllLayers,
+            bool useTriggers = false)
+        {
+            hit = default;
+            bool  any          = false;
+            float bestDistance = float.PositiveInfinity;
+
+            for (int index = 0; index < colliders.Count; index++)
+            {
+                var collider       = colliders[index];
+                var relativeMatrix = relativeMatrices[index];
+
+                GetChildWorldTransformRelativeTo(relativeMatrix, position, angle, scale,
+                    out var colliderPos, out var colliderAngle, out var colliderScale);
+
+                int mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
+                if (CastCollider(collider, colliderPos, colliderAngle, colliderScale, direction, distance, mask, useTriggers, out var localHit, filter))
+                {
+                    if (localHit.distance < bestDistance)
+                    {
+                        bestDistance = localHit.distance;
+                        hit          = localHit;
+                        any          = true;
+                    }
+                }
+            }
+
+            return any;
+        }
+
+        public static bool CastBoxCollider(BoxCollider2D box, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            var (center, size, worldAngle) = GetBoxColliderParams(box, position, angle, scale);
+            return BoxCast(center, size, worldAngle, direction, distance, layerMask, useTriggers, out hit, filter);
+        }
+
+        public static bool CastCircleCollider(CircleCollider2D circle, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            var (center, radius) = GetCircleColliderParams(circle, position, angle, scale);
+            return CircleCast(center, radius, direction, distance, layerMask, useTriggers, out hit, filter);
+        }
+
+        public static bool CastCapsuleCollider(CapsuleCollider2D capsule, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            var (center, size, capsuleDirection, worldAngle) = GetCapsuleColliderParams(capsule, position, angle, scale);
+            return CapsuleCast(center, size, capsuleDirection, worldAngle, direction, distance, layerMask, useTriggers, out hit, filter);
+        }
+
+        public static bool CastCollider(
+            Collider2D collider,
+            Vector2 position,
+            float angle,
+            Vector2 scale,
+            Vector2 direction,
+            float distance,
+            int layerMask,
+            bool useTriggers,
+            out RaycastHit2D hit,
+            RaycastHit2DFilter filter)
+        {
+            if (collider == null)
+                throw new ArgumentNullException(nameof(collider));
+
+            // ReSharper disable Unity.NoNullPatternMatching
+            switch (collider)
+            {
+                case BoxCollider2D box:         return CastBoxCollider(box, position, angle, scale, direction, distance, layerMask, useTriggers, out hit, filter);
+                case CircleCollider2D circle:   return CastCircleCollider(circle, position, angle, scale, direction, distance, layerMask, useTriggers, out hit, filter);
+                case CapsuleCollider2D capsule: return CastCapsuleCollider(capsule, position, angle, scale, direction, distance, layerMask, useTriggers, out hit, filter);
+                default:
+                    Debug.LogWarning($"Collider2D type {collider.GetType().Name} not supported.");
+                    hit = default;
+                    return false;
+            }
+            // ReSharper restore Unity.NoNullPatternMatching
+        }
+
+        public static bool BoxCast(Vector2 origin, Vector2 size, float angle, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            var contactFilter = MakeFilter(layerMask, useTriggers);
+            using (ListPool<RaycastHit2D>.Get(out var hits))
+            {
+                int count = Physics2D.BoxCast(origin, size, angle, direction, contactFilter, hits, distance);
+                return FirstPassingHit(hits, count, filter, out hit);
+            }
+        }
+
+        public static bool CircleCast(Vector2 origin, float radius, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            var contactFilter = MakeFilter(layerMask, useTriggers);
+            using (ListPool<RaycastHit2D>.Get(out var hits))
+            {
+                int count = Physics2D.CircleCast(origin, radius, direction, contactFilter, hits, distance);
+                return FirstPassingHit(hits, count, filter, out hit);
+            }
+        }
+
+        public static bool CapsuleCast(Vector2 origin, Vector2 size, CapsuleDirection2D capsuleDirection, float angle, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            var contactFilter = MakeFilter(layerMask, useTriggers);
+            using (ListPool<RaycastHit2D>.Get(out var hits))
+            {
+                int count = Physics2D.CapsuleCast(origin, size, capsuleDirection, angle, direction, contactFilter, hits, distance);
+                return FirstPassingHit(hits, count, filter, out hit);
+            }
+        }
+
         // ----- Layer mask cache (mirrors 3D version) -----
 
         public static LayerMask GetLayerCollisionMask(int layer)
@@ -639,6 +783,21 @@ namespace SeweralIdeas.UnityUtils
             {
                 hit = hits[0];
                 return true;
+            }
+            hit = default;
+            return false;
+        }
+
+        private static bool FirstPassingHit(List<RaycastHit2D> hits, int count, RaycastHit2DFilter filter, out RaycastHit2D hit)
+        {
+            // Walk hits in distance order; return the first one the filter accepts.
+            for (int i = 0; i < count; i++)
+            {
+                if (filter == null || filter(hits[i]))
+                {
+                    hit = hits[i];
+                    return true;
+                }
             }
             hit = default;
             return false;
