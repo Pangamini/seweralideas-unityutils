@@ -458,7 +458,7 @@ namespace SeweralIdeas.UnityUtils
         {
             if(collider == null)
                 throw new ArgumentNullException(nameof(collider));
-            
+
             // ReSharper disable Unity.NoNullPatternMatching
             switch (collider)
             {
@@ -470,6 +470,121 @@ namespace SeweralIdeas.UnityUtils
                     return CheckCapsuleCollider(capsule, position, rotation, scale, layerMask, qti, filter);
                 default:
                     Debug.LogWarning($"Collider type {collider.GetType().Name} not supported.");
+                    return false;
+            }
+            // ReSharper restore Unity.NoNullPatternMatching
+        }
+
+        // ----- CastGameObject -----
+
+        public static bool CastGameObject(
+            GameObject gameObject,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            Vector3 direction,
+            float distance,
+            out RaycastHit hit,
+            int layerMask = Physics.AllLayers,
+            QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
+        {
+            using (ListPool<Collider>.Get(out var colliders))
+            using (ListPool<Matrix4x4>.Get(out var relativeMatrices))
+            {
+                gameObject.GetComponentsInChildren(colliders);
+                GetRelativeMatrices(gameObject.transform, colliders, relativeMatrices);
+
+                return CastGameObject(colliders, relativeMatrices, position, rotation, scale, direction, distance, out hit, layerMask, qti);
+            }
+        }
+
+        public static bool CastGameObject(
+            IList<Collider> colliders,
+            IList<Matrix4x4> relativeMatrices,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            Vector3 direction,
+            float distance,
+            out RaycastHit hit,
+            int layerMask = Physics.AllLayers,
+            QueryTriggerInteraction qti = QueryTriggerInteraction.Ignore)
+        {
+            hit = default;
+            bool  any          = false;
+            float bestDistance = float.PositiveInfinity;
+
+            for (int index = 0; index < colliders.Count; index++)
+            {
+                var collider       = colliders[index];
+                var relativeMatrix = relativeMatrices[index];
+
+                GetChildWorldTransformRelativeTo(relativeMatrix, position, rotation, scale,
+                    out var colliderPos, out var colliderRot, out var colliderScale);
+
+                int mask = GetLayerCollisionMask(collider.gameObject.layer) & layerMask;
+                if (CastCollider(collider, colliderPos, colliderRot, colliderScale, direction, distance, mask, qti, out var localHit))
+                {
+                    if (localHit.distance < bestDistance)
+                    {
+                        bestDistance = localHit.distance;
+                        hit          = localHit;
+                        any          = true;
+                    }
+                }
+            }
+
+            return any;
+        }
+
+        // ----- Per-type Cast -----
+
+        public static bool CastBoxCollider(BoxCollider box, Vector3 position, Quaternion rotation, Vector3 scale, Vector3 direction, float distance, int layerMask, QueryTriggerInteraction qti, out RaycastHit hit)
+        {
+            var (center, halfExtents) = GetBoxColliderCenterAndHalfExtents(box, position, rotation, scale);
+            return Physics.BoxCast(center, halfExtents, direction, out hit, rotation, distance, layerMask, qti);
+        }
+
+        public static bool CastSphereCollider(SphereCollider sphere, Vector3 position, Quaternion rotation, Vector3 scale, Vector3 direction, float distance, int layerMask, QueryTriggerInteraction qti, out RaycastHit hit)
+        {
+            var (center, radius) = GetSphereColliderCenterAndRadius(sphere, position, rotation, scale);
+            return Physics.SphereCast(center, radius, direction, out hit, distance, layerMask, qti);
+        }
+
+        public static bool CastCapsuleCollider(CapsuleCollider capsule, Vector3 position, Quaternion rotation, Vector3 scale, Vector3 direction, float distance, int layerMask, QueryTriggerInteraction qti, out RaycastHit hit)
+        {
+            var (point1, point2, radius) = GetCapsuleColliderParams(capsule, position, rotation, scale);
+            return Physics.CapsuleCast(point1, point2, radius, direction, out hit, distance, layerMask, qti);
+        }
+
+        // ----- Generic Cast dispatcher -----
+
+        public static bool CastCollider(
+            Collider collider,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            Vector3 direction,
+            float distance,
+            int layerMask,
+            QueryTriggerInteraction qti,
+            out RaycastHit hit)
+        {
+            if(collider == null)
+                throw new ArgumentNullException(nameof(collider));
+
+            // ReSharper disable Unity.NoNullPatternMatching
+            switch (collider)
+            {
+                case BoxCollider box:
+                    return CastBoxCollider(box, position, rotation, scale, direction, distance, layerMask, qti, out hit);
+                case SphereCollider sphere:
+                    return CastSphereCollider(sphere, position, rotation, scale, direction, distance, layerMask, qti, out hit);
+                case CapsuleCollider capsule:
+                    return CastCapsuleCollider(capsule, position, rotation, scale, direction, distance, layerMask, qti, out hit);
+                default:
+                    Debug.LogWarning($"Collider type {collider.GetType().Name} not supported.");
+                    hit = default;
                     return false;
             }
             // ReSharper restore Unity.NoNullPatternMatching
