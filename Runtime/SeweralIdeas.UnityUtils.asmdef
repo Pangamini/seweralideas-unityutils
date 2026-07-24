@@ -37,6 +37,11 @@
             "name": "com.unity.textmeshpro",
             "expression": "1.0.0",
             "define": "UNITY_TEXTMESHPRO"
+        },
+        {
+            "name": "com.unity.modules.tilemap",
+            "expression": "1.0.0",
+            "define": "UNITY_TILEMAP"
         }
     ],
     "noEngineReferences": false
