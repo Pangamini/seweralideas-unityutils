@@ -57,7 +57,7 @@ namespace SeweralIdeas.Utils
             }
         }
         
-        private void UnsubscribeWithoutNotify(ObservableAction<T> listener) => _onChanged -= listener;
+        public void UnsubscribeWithoutNotify(ObservableAction<T> listener) => _onChanged -= listener;
 
         public readonly struct Readonly : IReadonlyObservable<T>, IEquatable<Readonly>
         {
