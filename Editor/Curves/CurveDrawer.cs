@@ -184,7 +184,7 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
             {
                 Color curveColor = s_curveColors[i % s_curveColors.Length];
                 DrawCurve(curvePosition, curves[i], xRange, yRange, curveColor);
-                if(values != null)
+                if(values != null && i < values.Count)
                 {
                     float value = values[i];
                     float valueRelative = Mathf.InverseLerp(xRange.x, xRange.y, value);
