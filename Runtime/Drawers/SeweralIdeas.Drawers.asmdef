@@ -1,9 +1,7 @@
 {
-    "name": "SeweralIdeas.Tween",
-    "rootNamespace": "SeweralIdeas.Tween",
-    "references": [
-        "GUID:ad7941ce49124b942809b4eb6d81bb06"
-    ],
+    "name": "SeweralIdeas.Drawers",
+    "rootNamespace": "SeweralIdeas.Drawers",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
