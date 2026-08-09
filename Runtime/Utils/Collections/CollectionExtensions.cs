@@ -194,6 +194,14 @@ namespace SeweralIdeas.Collections
                 target.Add(obj);
         }
 
+        public static void AddSet<T>(this List<T> target, ReadonlySetView<T> set)
+        {
+            int count = set.Count;
+            target.EnsureCapacity(target.Count + count);
+            foreach (var obj in set)
+                target.Add(obj);
+        }
+
         public static void EnsureCapacity<T>(this List<T> list, int minCapacity)
         {
             list.Capacity = System.Math.Max(list.Capacity, minCapacity);

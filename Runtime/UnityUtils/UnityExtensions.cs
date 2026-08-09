@@ -88,11 +88,7 @@ namespace SeweralIdeas.UnityUtils
             component.StartCoroutine(WaitRoutine(waitInstruction, action));
         }
 
-        public static T GetOrAddComponent<T>(this GameObject go) where T : Component
-        {
-            var r = go.GetComponent<T>();
-            return r ? r : go.AddComponent<T>();
-        }
+        public static T GetOrAddComponent<T>(this GameObject go) where T : Component => go.TryGetComponent(out T r) ? r : go.AddComponent<T>();
 
         public static bool IsPlaying(this GameObject go)
         {
