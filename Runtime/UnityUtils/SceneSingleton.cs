@@ -7,7 +7,17 @@ namespace SeweralIdeas.UnityUtils
 {
     public class SceneSingleton<T> : MonoBehaviour where T : SceneSingleton<T>
     {
-        private static readonly Dictionary<Scene, T> s_instances = new Dictionary<Scene, T>();
+        // Scene doesn't implement IEquatable<Scene>, so EqualityComparer<Scene>.Default
+        // falls back to ObjectEqualityComparer<T>, which boxes the key on every lookup.
+        // Scene's == operator and GetHashCode() compare handles directly with no boxing.
+        private sealed class SceneComparer : IEqualityComparer<Scene>
+        {
+            public static readonly SceneComparer Instance = new();
+            public bool Equals(Scene x, Scene y) => x == y;
+            public int GetHashCode(Scene scene) => scene.GetHashCode();
+        }
+
+        private static readonly Dictionary<Scene, T> s_instances = new Dictionary<Scene, T>(SceneComparer.Instance);
 
         public static T GetInstance(Scene scene)
         {
