@@ -1,8 +1,8 @@
 using System;
-using SeweralIdeas.Utils;
+using Unity.Properties;
 using UnityEngine;
 
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Utils
 {
     [Serializable]
     public struct TypeReference : ISerializationCallbackReceiver

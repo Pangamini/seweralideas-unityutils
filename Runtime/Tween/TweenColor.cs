@@ -4,6 +4,8 @@ namespace SeweralIdeas.UnityUtils
 {
     public class TweenColor : TweenValue<Color>
     {
+        private static MaterialPropertyBlock _propertyBlock;
+        
         [SerializeField] 
         private string m_materialProperty = "_Color";
         
@@ -17,6 +19,7 @@ namespace SeweralIdeas.UnityUtils
 
         protected override void Start()
         {
+            _propertyBlock ??= new MaterialPropertyBlock();
             UpdateProperty();
             base.Start();
         }
@@ -24,14 +27,11 @@ namespace SeweralIdeas.UnityUtils
         protected override Color Interpolate(float t) => Color.Lerp(OffValue, OnValue, t);
         protected override void OnValueInterpolated(float value, Color newValue)
         {
-            using (MaterialPropertyPool.Get(out var block))
+            foreach (var rend in m_renderers)
             {
-                foreach (var rend in m_renderers)
-                {
-                    rend.GetPropertyBlock(block);
-                    block.SetColor(m_materialPropertyId, newValue);
-                    rend.SetPropertyBlock(block);
-                }
+                rend.GetPropertyBlock(_propertyBlock);
+                _propertyBlock.SetColor(m_materialPropertyId, newValue);
+                rend.SetPropertyBlock(_propertyBlock);
             }
         }
 

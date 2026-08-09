@@ -13,6 +13,7 @@ namespace SeweralIdeas.UnityUtils
         private                  GameObject?            _reported;
         
         public UnityEvent<GameObject> OnSelectionChanged => _onSelectionChanged;
+        public GameObject Selection => _eventSystem.currentSelectedGameObject;
 
         public static EventSystemSelectionTrigger Get(EventSystem system) => system.gameObject.GetOrAddComponent<EventSystemSelectionTrigger>();
 
@@ -21,12 +22,12 @@ namespace SeweralIdeas.UnityUtils
         private void Awake()
         {
             _eventSystem = GetComponent<EventSystem>();
-            _reported = _eventSystem.currentSelectedGameObject;
+            _reported = Selection;
         }
 
         private void LateUpdate()
         {
-            var current = _eventSystem.currentSelectedGameObject;
+            var current = Selection;
             if(_reported == current)
                 return;
             _reported = current;

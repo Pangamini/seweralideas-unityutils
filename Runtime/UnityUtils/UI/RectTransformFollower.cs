@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,12 +9,20 @@ namespace SeweralIdeas.UnityUtils
     public class RectTransformFollower : MonoBehaviour, ILayoutIgnorer
     {
         [SerializeField] private RectTransform _destination;
-        [SerializeField] private float         _smoothTime = 0.2f;
-        [SerializeField] private float         _maxSpeed = Mathf.Infinity;
+        [SerializeField] private float         _smoothTime   = 0.2f;
+        [SerializeField] private float         _maxSpeed     = Mathf.Infinity;
         [SerializeField] private bool          _snapOnEnable = true;
+        [SerializeField] private UpdateMode    _updateMode;
 
+        public enum UpdateMode : byte
+        {
+            Normal,
+            Unscaled
+        }
+        
         private RectTransform _rectTransform;
-        private Vector3       _positionVelocity;
+        private Vector3       _center;
+        private Vector3       _centerVelocity;
         private Vector2       _sizeVelocity;
         private Vector3       _rotationVelocity;
 
@@ -43,6 +52,11 @@ namespace SeweralIdeas.UnityUtils
                 _rectTransform,
                 DrivenTransformProperties.Anchors | DrivenTransformProperties.AnchoredPosition3D | DrivenTransformProperties.SizeDelta | DrivenTransformProperties.Rotation);
 
+            // Establish the smoothed center from wherever we currently sit, so that if
+            // _snapOnEnable is false, Update's first SmoothDamp step starts from the
+            // truth instead of (0,0,0).
+            _center = _rectTransform.position + CalculateSelfCenterOffset();
+
             if(_snapOnEnable)
                 SnapToDestination();
         }
@@ -59,11 +73,13 @@ namespace SeweralIdeas.UnityUtils
 
             _rectTransform.sizeDelta   = CalculateTargetSizeDelta();
             _rectTransform.eulerAngles = _destination.eulerAngles;
-            _rectTransform.position    = CalculateTargetPosition();
+
+            _center = CalculateDestinationCenter();
+            _rectTransform.position = _center - CalculateSelfCenterOffset();
 
             _sizeVelocity     = Vector2.zero;
             _rotationVelocity = Vector3.zero;
-            _positionVelocity = Vector3.zero;
+            _centerVelocity   = Vector3.zero;
         }
 
         protected void Update()
@@ -71,10 +87,21 @@ namespace SeweralIdeas.UnityUtils
             if(!_destination)
                 return;
 
-            float dt = Time.deltaTime;
+            float dt = _updateMode switch
+            {
+                UpdateMode.Normal => Time.deltaTime,
+                UpdateMode.Unscaled => Time.unscaledDeltaTime,
+                _ => throw new ArgumentOutOfRangeException()
+            };
 
-            // Size and rotation are updated first: the pivot-compensated position
-            // target below depends on this frame's (post-smoothing) size and rotation.
+            // Rotation first: the pivot<->center conversion below needs it.
+            Vector3 currentEuler = _rectTransform.eulerAngles;
+            Vector3 targetEuler  = _destination.eulerAngles;
+            currentEuler.x = Mathf.SmoothDampAngle(currentEuler.x, targetEuler.x, ref _rotationVelocity.x, _smoothTime, _maxSpeed, dt);
+            currentEuler.y = Mathf.SmoothDampAngle(currentEuler.y, targetEuler.y, ref _rotationVelocity.y, _smoothTime, _maxSpeed, dt);
+            currentEuler.z = Mathf.SmoothDampAngle(currentEuler.z, targetEuler.z, ref _rotationVelocity.z, _smoothTime, _maxSpeed, dt);
+            _rectTransform.eulerAngles = currentEuler;
+
             _rectTransform.sizeDelta = Vector2.SmoothDamp(
                 _rectTransform.sizeDelta,
                 CalculateTargetSizeDelta(),
@@ -83,25 +110,24 @@ namespace SeweralIdeas.UnityUtils
                 _maxSpeed,
                 dt);
 
-            Vector3 currentEuler = _rectTransform.eulerAngles;
-            Vector3 targetEuler  = _destination.eulerAngles;
-            currentEuler.x = Mathf.SmoothDampAngle(currentEuler.x, targetEuler.x, ref _rotationVelocity.x, _smoothTime, _maxSpeed, dt);
-            currentEuler.y = Mathf.SmoothDampAngle(currentEuler.y, targetEuler.y, ref _rotationVelocity.y, _smoothTime, _maxSpeed, dt);
-            currentEuler.z = Mathf.SmoothDampAngle(currentEuler.z, targetEuler.z, ref _rotationVelocity.z, _smoothTime, _maxSpeed, dt);
-            _rectTransform.eulerAngles = currentEuler;
-
-            // RectTransform.position is the world position of the pivot, not the
-            // rect's center, so with mismatched pivots two rects can share a
-            // position yet not overlap. Compensate by aiming for the world-space
-            // position our own pivot would need in order for both rects' centers
-            // to coincide.
-            _rectTransform.position = Vector3.SmoothDamp(
-                _rectTransform.position,
-                CalculateTargetPosition(),
-                ref _positionVelocity,
+            // Smooth the rect's CENTER toward the destination's exact (never-smoothed)
+            // center - a fixed target every frame. Deriving the position SmoothDamp's
+            // target from our own still-interpolating size instead (as a previous
+            // version did) makes the target itself lag/move each frame, which
+            // compounds into a floaty double-smoothed result whenever pivot != 0.5;
+            // that term is only zero, and the bug invisible, at pivot 0.5.
+            _center = Vector3.SmoothDamp(
+                _center,
+                CalculateDestinationCenter(),
+                ref _centerVelocity,
                 _smoothTime,
                 _maxSpeed,
                 dt);
+
+            // Converting the smoothed center back to a pivot position is a plain
+            // algebraic step using this frame's already-smoothed size/rotation - not
+            // itself part of the smoothing - so it can't reintroduce the coupling above.
+            _rectTransform.position = _center - CalculateSelfCenterOffset();
         }
 
         private Vector2 CalculateTargetSizeDelta()
@@ -111,15 +137,17 @@ namespace SeweralIdeas.UnityUtils
             return new Vector2(targetWorldSize.x / selfScale.x, targetWorldSize.y / selfScale.y);
         }
 
-        private Vector3 CalculateTargetPosition()
+        private Vector3 CalculateDestinationCenter()
         {
-            Vector3 destinationCenterOffset = _destination.TransformVector(
+            Vector3 offset = _destination.TransformVector(
                 new Vector3((0.5f - _destination.pivot.x) * _destination.rect.width, (0.5f - _destination.pivot.y) * _destination.rect.height, 0f));
-            Vector3 targetCenter = _destination.position + destinationCenterOffset;
+            return _destination.position + offset;
+        }
 
-            Vector3 selfCenterOffset = _rectTransform.TransformVector(
+        private Vector3 CalculateSelfCenterOffset()
+        {
+            return _rectTransform.TransformVector(
                 new Vector3((0.5f - _rectTransform.pivot.x) * _rectTransform.rect.width, (0.5f - _rectTransform.pivot.y) * _rectTransform.rect.height, 0f));
-            return targetCenter - selfCenterOffset;
         }
     }
 }
