@@ -1,5 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace SeweralIdeas.UnityUtils
 {
@@ -27,6 +30,8 @@ namespace SeweralIdeas.UnityUtils
         private int _lastScreenWidth;
         private int _lastScreenHeight;
 
+        private DrivenRectTransformTracker _tracker;
+
         public Vector2Int TargetAspect
         {
             get => _targetAspect;
@@ -51,10 +56,33 @@ namespace SeweralIdeas.UnityUtils
                 Apply();
         }
 
+        protected void OnDisable()
+        {
+            _tracker.Clear();
+        }
+
+#if UNITY_EDITOR
+        protected void OnValidate()
+        {
+            // Defer: creating the letterbox UI (AddComponent etc.) is not allowed during OnValidate,
+            // and re-running here lets Apply()'s _tracker.Clear() drop any rects reassigned away
+            // (old _uiViewports entries, old bar RectTransforms) before re-adding the current ones.
+            EditorApplication.delayCall += DelayedApply;
+        }
+
+        private void DelayedApply()
+        {
+            if(this)
+                Apply();
+        }
+#endif
+
         private void Apply()
         {
             _lastScreenWidth  = Screen.width;
             _lastScreenHeight = Screen.height;
+
+            _tracker.Clear();
 
             if(!_gameCamera || _targetAspect.x <= 0 || _targetAspect.y <= 0)
                 return;
@@ -67,7 +95,13 @@ namespace SeweralIdeas.UnityUtils
             if(_uiViewports != null)
             {
                 foreach(RectTransform viewportRect in _uiViewports)
+                {
+                    if(!viewportRect)
+                        continue;
+
+                    _tracker.Add(this, viewportRect, DrivenTransformProperties.Anchors | DrivenTransformProperties.AnchoredPosition | DrivenTransformProperties.SizeDelta);
                     ApplyUiViewport(viewportRect, viewport);
+                }
             }
 
             ApplyLetterboxBars(viewport, _barTop, _barBottom, _barLeft, _barRight);
@@ -116,16 +150,13 @@ namespace SeweralIdeas.UnityUtils
 
         private static void ApplyUiViewport(RectTransform viewportRect, Rect viewport)
         {
-            if(!viewportRect)
-                return;
-
             viewportRect.anchorMin = new Vector2(viewport.xMin, viewport.yMin);
             viewportRect.anchorMax = new Vector2(viewport.xMax, viewport.yMax);
             viewportRect.offsetMin = Vector2.zero;
             viewportRect.offsetMax = Vector2.zero;
         }
 
-        private static void ApplyLetterboxBars(Rect viewport, RectTransform top, RectTransform bottom, RectTransform left, RectTransform right)
+        private void ApplyLetterboxBars(Rect viewport, RectTransform top, RectTransform bottom, RectTransform left, RectTransform right)
         {
             SetBar(top,    new Vector2(0f, viewport.yMax), new Vector2(1f, 1f));
             SetBar(bottom, new Vector2(0f, 0f),             new Vector2(1f, viewport.yMin));
@@ -133,10 +164,12 @@ namespace SeweralIdeas.UnityUtils
             SetBar(right,  new Vector2(viewport.xMax, 0f),  new Vector2(1f, 1f));
         }
 
-        private static void SetBar(RectTransform bar, Vector2 anchorMin, Vector2 anchorMax)
+        private void SetBar(RectTransform bar, Vector2 anchorMin, Vector2 anchorMax)
         {
             if(!bar)
                 return;
+
+            _tracker.Add(this, bar, DrivenTransformProperties.Anchors | DrivenTransformProperties.AnchoredPosition | DrivenTransformProperties.SizeDelta);
 
             bar.anchorMin = anchorMin;
             bar.anchorMax = anchorMax;
