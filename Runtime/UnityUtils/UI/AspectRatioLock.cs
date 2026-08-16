@@ -84,7 +84,13 @@ namespace SeweralIdeas.UnityUtils
 
             _tracker.Clear();
 
-            if(!_gameCamera || _targetAspect.x <= 0 || _targetAspect.y <= 0)
+            // Screen.width/height can be transiently 0 in the editor (e.g. the Game
+            // view hasn't laid out yet after a domain reload, or OnValidate's
+            // deferred call runs before it does). windowAspect would then divide by
+            // zero, producing an Infinity or NaN Rect that CalculateViewport has no
+            // way to detect - that would get written straight into every tracked
+            // RectTransform's anchors and the camera's rect below.
+            if(!_gameCamera || _targetAspect.x <= 0 || _targetAspect.y <= 0 || Screen.width <= 0 || Screen.height <= 0)
                 return;
 
             EnsureLetterboxUi();
