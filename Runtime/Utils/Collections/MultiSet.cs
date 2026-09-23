@@ -150,7 +150,12 @@ namespace SeweralIdeas.Collections
 
         IEnumerator IEnumerable.GetEnumerator() => m_multiSet.Keys.GetEnumerator();
 
-        public uint GetCount(T t) => m_multiSet[t];
+        public uint GetCount(T t)
+        {
+            if(m_multiSet.TryGetValue(t, out var count))
+                return count;
+            return 0;
+        }
 
     }
 
@@ -167,7 +172,7 @@ namespace SeweralIdeas.Collections
         
         public int Count => m_set.Count;
 
-        public uint GetValue(T t) {
+        public uint GetCount(T t) {
             return m_set.GetCount(t);
         }
 
