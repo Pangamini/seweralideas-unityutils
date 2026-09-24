@@ -7,6 +7,16 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 
+// Scene.handle was plain int before Unity 6000.3, then SceneHandle with an
+// implicit int/uint conversion through 6000.5 (so `int` kept compiling either
+// way), then that implicit conversion was removed in 6000.6 - GetRawData()
+// (ulong) is the only way to get a hashable value out of it from there on.
+#if UNITY_6000_6_OR_NEWER
+using HandleKey = System.UInt64;
+#else
+using HandleKey = System.Int32;
+#endif
+
 namespace SeweralIdeas.UnityUtils
 {
     public class AdditiveSceneLoader
@@ -14,20 +24,29 @@ namespace SeweralIdeas.UnityUtils
         private          ToLoad?                           _queued               = null;
         private readonly Observable<ToLoad?>               _currentLoadProcess   = new();
         private readonly Observable<Scene>                 _loadedScene          = new();
-        private readonly HashSet<int>                      _alreadyLoadedHandles = new();
+        private readonly HashSet<HandleKey>                 _alreadyLoadedHandles = new();
         private readonly UnityAction<Scene, LoadSceneMode> _onSomeSceneLoadedAction;
         private          bool                              _subscribed = false;
         private          bool                              _disposed   = false;
-        
+
         #if DEBUG
         private StackTrace _debug_constructionStackTrace;
         #endif
-        
+
         public Observable<Scene>.Readonly LoadedScene => _loadedScene.ReadOnly;
         public Observable<ToLoad?>.Readonly CurrentLoadProcess => _currentLoadProcess.ReadOnly;
-        
-        private static readonly Dictionary<int, AdditiveSceneLoader> OtherLoadersReservedHandles = new();
-        private static readonly HashSet<AdditiveSceneLoader>         SubscribedLoaders           = new();
+
+        private static readonly Dictionary<HandleKey, AdditiveSceneLoader> OtherLoadersReservedHandles = new();
+        private static readonly HashSet<AdditiveSceneLoader>                SubscribedLoaders          = new();
+
+        private static HandleKey GetHandleKey(Scene scene)
+        {
+#if UNITY_6000_6_OR_NEWER
+            return scene.handle.GetRawData();
+#else
+            return scene.handle;
+#endif
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Init()
@@ -103,7 +122,7 @@ namespace SeweralIdeas.UnityUtils
                 if (someLoadedScene.buildIndex != myIndex)
                     continue;
 
-                _alreadyLoadedHandles.Add(someLoadedScene.handle);
+                _alreadyLoadedHandles.Add(GetHandleKey(someLoadedScene));
             }
             
             // Begin loading
@@ -128,11 +147,11 @@ namespace SeweralIdeas.UnityUtils
                 return;
 
             // Skip scenes that were loaded before.
-            if (_alreadyLoadedHandles.Contains(someLoadedScene.handle))
+            if (_alreadyLoadedHandles.Contains(GetHandleKey(someLoadedScene)))
                 return;
 
             //Skip globally reserved scenes.
-            if (OtherLoadersReservedHandles.ContainsKey(someLoadedScene.handle))
+            if (OtherLoadersReservedHandles.ContainsKey(GetHandleKey(someLoadedScene)))
                 return;
 
             // someLoadedScene now hopefully contains our scene.
@@ -150,12 +169,12 @@ namespace SeweralIdeas.UnityUtils
         
         }
 
-        public static bool IsSceneAssignedToAnyLoader(Scene scene) => OtherLoadersReservedHandles.ContainsKey(scene.handle);
+        public static bool IsSceneAssignedToAnyLoader(Scene scene) => OtherLoadersReservedHandles.ContainsKey(GetHandleKey(scene));
 
         private void OnMySceneLoaded(Scene loadedScene)
         {
-            if(loadedScene.handle != 0)
-                OtherLoadersReservedHandles.Add(loadedScene.handle, this);
+            if(GetHandleKey(loadedScene) != 0)
+                OtherLoadersReservedHandles.Add(GetHandleKey(loadedScene), this);
             _currentLoadProcess.Value = null;
             _loadedScene.Value = loadedScene;
             SetSubscribed(false);

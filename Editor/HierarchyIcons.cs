@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
@@ -13,7 +13,7 @@ namespace SeweralIdeas.UnityUtils
     {
         static readonly Dictionary<Type, Texture> Icons = new Dictionary<Type, Texture>();
         public static Texture NullTypeIcon => null;
-        
+
         public static bool GetTexture(Type type, out Texture texture)
         {
             return Icons.TryGetValue(type, out texture);
@@ -29,7 +29,11 @@ namespace SeweralIdeas.UnityUtils
 
         static HierarchyIcons()
         {
+#if UNITY_6000_6_OR_NEWER
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI += DrawHierarchyGUI;
+#else
             EditorApplication.hierarchyWindowItemOnGUI += DrawHierarchyGUI;
+#endif
 
             Dictionary<Type, Texture> iconsFromScript = new Dictionary<Type, Texture>();
             var guids = AssetDatabase.FindAssets("t:MonoScript");
@@ -70,13 +74,26 @@ namespace SeweralIdeas.UnityUtils
 
         }
 
+#if UNITY_6000_6_OR_NEWER
+        static void DrawHierarchyGUI(EntityId entityId, Rect selectionRect)
+        {
+            var obj = EditorUtility.EntityIdToObject(entityId) as GameObject;
+            if (obj == null) return;
+            DrawHierarchyGUI(obj, selectionRect);
+        }
+#else
         static void DrawHierarchyGUI(int instanceID, Rect selectionRect)
         {
             var obj = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
             if (obj == null) return;
+            DrawHierarchyGUI(obj, selectionRect);
+        }
+#endif
 
+        static void DrawHierarchyGUI(GameObject obj, Rect selectionRect)
+        {
             Type type = null;
-            
+
             using (ListPool<Component>.Get(out var components))
             {
                 obj.GetComponents(components);
@@ -94,7 +111,7 @@ namespace SeweralIdeas.UnityUtils
 
             if(type == null)
                 return;
-            
+
             Texture texture;
             if (Icons.TryGetValue(type, out texture))
             {
