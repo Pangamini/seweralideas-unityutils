@@ -24,18 +24,35 @@ namespace SeweralIdeas.UnityUtils.Editor
 
         static ErrorCheckToolEditor()
         {
+#if UNITY_6000_6_OR_NEWER
+            EditorApplication.hierarchyWindowItemByEntityIdOnGUI += DrawHierarchyGUI;
+#else
             EditorApplication.hierarchyWindowItemOnGUI += DrawHierarchyGUI;
+#endif
             Menu.SetChecked(MenuItemPath, Enabled);
         }
 
+#if UNITY_6000_6_OR_NEWER
+        static void DrawHierarchyGUI(EntityId entityId, Rect selectionRect)
+        {
+            var go = EditorUtility.EntityIdToObject(entityId) as GameObject;
+            if (go == null) return;
+            DrawHierarchyGUI(go, selectionRect);
+        }
+#else
         static void DrawHierarchyGUI(int instanceID, Rect selectionRect)
         {
             var go = EditorUtility.InstanceIDToObject(instanceID) as GameObject;
             if (go == null) return;
+            DrawHierarchyGUI(go, selectionRect);
+        }
+#endif
 
+        static void DrawHierarchyGUI(GameObject go, Rect selectionRect)
+        {
             if(Application.isPlaying || !Enabled)
                 return;
-            
+
             var error = ValidateGameObject(go);
 
             if (error.hasError || error.childHasError)
@@ -64,7 +81,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             GUI.Label(errorRect, content, "CN EntryWarnIconSmall");
             GUI.color = Color.white;
         }
-        
+
         private static void ShowError(Rect selectionRect, ErrorCheckTool.GameObjectError error)
         {
             var errorRect = selectionRect;
