@@ -17,15 +17,30 @@ namespace SeweralIdeas.UnityUtils.Editor
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            DrawPropertiesExcluding(serializedObject, Exclude);
-            
+
             var tableProp = serializedObject.FindProperty("_table");
             var searchMode = serializedObject.FindProperty("_searchMode");
-            
+
+            if (!UnityUtilsSettings.IsAutoAssetByNameLookupEnabled && searchMode.enumValueIndex != (int)IAutoFindAssets.SearchMode.None)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.HelpBox(
+                        "Auto Asset By Name Lookup is disabled in Project Settings > SeweralIdeas.UnityUtils. " +
+                        "This list will not be kept in sync automatically until it's re-enabled.",
+                        MessageType.Warning);
+
+                    if (GUILayout.Button("Enable", GUILayout.Width(60), GUILayout.ExpandHeight(true)))
+                        UnityUtilsSettings.instance.AutoAssetByNameLookupEnabled = true;
+                }
+            }
+
+            DrawPropertiesExcluding(serializedObject, Exclude);
+
             GUI.enabled = !searchMode.hasMultipleDifferentValues && searchMode.enumValueIndex == (int)IAutoFindAssets.SearchMode.None;
             EditorGUILayout.PropertyField(tableProp);
             GUI.enabled = true;
-            
+
             serializedObject.ApplyModifiedProperties();
         }
     }
@@ -39,6 +54,9 @@ namespace SeweralIdeas.UnityUtils.Editor
             string[] movedAssets,
             string[] movedFromAssetPaths)
         {
+            if (!UnityUtilsSettings.IsAutoAssetByNameLookupEnabled)
+                return;
+
             var allTypes = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(typeof(IAutoFindAssets), false, false));
 
             using (HashSetPool<ScriptableObject>.Get(out var autoLists))

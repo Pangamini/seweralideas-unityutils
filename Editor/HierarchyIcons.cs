@@ -12,6 +12,7 @@ namespace SeweralIdeas.UnityUtils
     public static class HierarchyIcons
     {
         static readonly Dictionary<Type, Texture> Icons = new Dictionary<Type, Texture>();
+        static bool s_iconsBuilt;
         public static Texture NullTypeIcon => null;
 
         public static bool GetTexture(Type type, out Texture texture)
@@ -29,13 +30,24 @@ namespace SeweralIdeas.UnityUtils
 
         static HierarchyIcons()
         {
+            // Subscribing here is cheap regardless of the setting; the expensive part (scanning
+            // every MonoScript in the project) is deferred to EnsureIconsBuilt, which only runs
+            // lazily, on first actual use, and only when the feature is enabled. That way toggling
+            // the setting in Project Settings takes effect immediately without a domain reload,
+            // and projects that leave it off (the default) never pay the scan cost at all.
 #if UNITY_6000_6_OR_NEWER
             EditorApplication.hierarchyWindowItemByEntityIdOnGUI += DrawHierarchyGUI;
 #else
             EditorApplication.hierarchyWindowItemOnGUI += DrawHierarchyGUI;
 #endif
+        }
 
-            Dictionary<Type, Texture> iconsFromScript = new Dictionary<Type, Texture>();
+        static void EnsureIconsBuilt()
+        {
+            if (s_iconsBuilt)
+                return;
+            s_iconsBuilt = true;
+
             var guids = AssetDatabase.FindAssets("t:MonoScript");
             foreach (var guid in guids)
             {
@@ -55,23 +67,6 @@ namespace SeweralIdeas.UnityUtils
                     }
                 }
             }
-            //
-            // var typeList = TypeUtility.GetDerivedTypes(new TypeUtility.TypeQuery(typeof(IHierarchyIcon), true, true));
-            // foreach (var type in typeList.types)
-            // {
-            //     var searchType = type;
-            //     while (searchType != null)
-            //     {
-            //         Texture icon;
-            //         if (iconsFromScript.TryGetValue(searchType, out icon))
-            //         {
-            //             s_icons.Add(type, icon);
-            //             break;
-            //         }
-            //         searchType = searchType.BaseType;
-            //     }
-            // }
-
         }
 
 #if UNITY_6000_6_OR_NEWER
@@ -92,6 +87,11 @@ namespace SeweralIdeas.UnityUtils
 
         static void DrawHierarchyGUI(GameObject obj, Rect selectionRect)
         {
+            if (!SeweralIdeas.UnityUtils.Editor.UnityUtilsSettings.IsHierarchyIconsEnabled)
+                return;
+
+            EnsureIconsBuilt();
+
             Type type = null;
 
             using (ListPool<Component>.Get(out var components))
