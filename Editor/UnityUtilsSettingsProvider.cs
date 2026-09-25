@@ -30,17 +30,37 @@ namespace SeweralIdeas.UnityUtils.Editor
             if (_serializedSettings == null)
                 return;
 
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Texture Import", EditorStyles.boldLabel);
-
             _serializedSettings.Update();
             EditorGUI.BeginChangeCheck();
 
+            EditorGUILayout.LabelField("Texture Import", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(
                 _serializedSettings.FindProperty("_premultiplyAlphaEnabled"),
                 new GUIContent("Enable Premultiply Alpha",
                     "Adds a \"Premultiply Alpha\" toggle to the Texture Importer inspector, and premultiplies " +
                     "alpha into RGB on import for flagged textures. Disabled by default."));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Hierarchy Window", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(
+                _serializedSettings.FindProperty("_hierarchyIconsEnabled"),
+                new GUIContent("Enable Hierarchy Icons",
+                    "Shows a per-component icon next to GameObjects in the Hierarchy window for components " +
+                    "marked with [HierarchyIconAttribute]. Disabled by default."));
+            EditorGUILayout.PropertyField(
+                _serializedSettings.FindProperty("_errorCheckToolEnabled"),
+                new GUIContent("Enable Error Check Tool",
+                    "Shows error/warning icons next to GameObjects in the Hierarchy window for components " +
+                    "implementing IErrorCheck. Disabled by default. Also toggleable from " +
+                    "Window > Error Check Tool > Enable Hierarchy."));
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Asset Management", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(
+                _serializedSettings.FindProperty("_autoAssetByNameLookupEnabled"),
+                new GUIContent("Enable Auto Asset By Name Lookup",
+                    "Keeps every AutoAssetByNameLookup<T> asset's list in sync automatically on asset import. " +
+                    "Enabled by default."));
 
             if (EditorGUI.EndChangeCheck())
             {

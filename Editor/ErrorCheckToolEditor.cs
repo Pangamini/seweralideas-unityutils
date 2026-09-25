@@ -10,14 +10,12 @@ namespace SeweralIdeas.UnityUtils.Editor
         private const string ChildHasErrors   = "Child has errors";
         private const string ChildHasWarnings = "Child has warnings";
 
-        private const string EnabledKey = "ErrorCheckTool_InspectionEnabled";
-
         public static bool Enabled
         {
-            get => EditorPrefs.GetBool(EnabledKey, false);
+            get => UnityUtilsSettings.IsErrorCheckToolEnabled;
             set
             {
-                EditorPrefs.SetBool(EnabledKey, value);
+                UnityUtilsSettings.instance.ErrorCheckToolEnabled = value;
                 Menu.SetChecked(MenuItemPath, value);
             }
         }
