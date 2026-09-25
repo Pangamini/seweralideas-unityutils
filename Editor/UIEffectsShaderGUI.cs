@@ -1,6 +1,7 @@
-using UnityEngine;
+using System;
 using UnityEditor;
-
+using UnityEngine;
+using Object = UnityEngine.Object;
 public class UIEffectsShaderGUI : ShaderGUI
 {
     private bool _showRendering = false;
@@ -17,6 +18,7 @@ public class UIEffectsShaderGUI : ShaderGUI
         var useDither      = FindProperty("_UseDither", props);
         var ditherBitDepth = FindProperty("_DitherBitDepth", props);
         var ditherSRGB     = FindProperty("_DitherSRGB", props);
+        var multiplyVertexAlpha = FindProperty("_MultiplyVertexAlpha", props);
         var srcBlend       = FindProperty("_SrcBlend", props);
         var dstBlend       = FindProperty("_DstBlend", props);
         var colorMask      = FindProperty("_ColorMask", props);
@@ -51,6 +53,11 @@ public class UIEffectsShaderGUI : ShaderGUI
             EditorGUILayout.HelpBox(
                 "Frame index for temporal dithering: Shader.SetGlobalFloat(\"_DitherFrameIndex\", Time.frameCount)",
                 MessageType.None);
+        });
+
+        // Premultiplied Alpha
+        DrawFeatureToggle(editor, multiplyVertexAlpha, "Multiply by vertex Alpha", "UI_MULTIPLY_VERTEXALPHA", () =>
+        {
         });
 
         EditorGUILayout.Space();
@@ -89,7 +96,7 @@ public class UIEffectsShaderGUI : ShaderGUI
         MaterialProperty toggleProp,
         string label,
         string keyword,
-        System.Action drawBody)
+        Action drawBody)
     {
         EditorGUI.BeginChangeCheck();
         bool enabled = EditorGUILayout.Toggle(label, toggleProp.floatValue > 0.5f);

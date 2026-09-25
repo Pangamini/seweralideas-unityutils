@@ -18,6 +18,9 @@ Shader "SeweralIdeas/UI/UI-Effects"
         [HideInInspector] _DitherBitDepth ("Bit Depth", Float) = 8
         [HideInInspector] _DitherSRGB ("sRGB Target", Float) = 1
 
+        // --- Premultiplied Alpha ---
+        [HideInInspector][Toggle(UI_MULTIPLY_VERTEXALPHA)] _MultiplyVertexAlpha ("Multiply by vertex Alpha", Float) = 0
+
         // --- Unity UI ---
         _StencilComp ("Stencil Comparison", Float) = 8
         _Stencil ("Stencil ID", Float) = 0
@@ -68,6 +71,7 @@ Shader "SeweralIdeas/UI/UI-Effects"
             #pragma shader_feature_local UI_SSAA
             #pragma shader_feature_local UI_SATURATION
             #pragma shader_feature_local UI_DITHER
+            #pragma shader_feature_local UI_MULTIPLY_VERTEXALPHA
 
             #pragma multi_compile __ UNITY_UI_CLIP_RECT
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
@@ -140,6 +144,10 @@ Shader "SeweralIdeas/UI/UI-Effects"
                 #endif
 
                 color *= _Color;
+
+                #ifdef UI_MULTIPLY_VERTEXALPHA
+                color.rgb *= IN.color.a;
+                #endif
 
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
