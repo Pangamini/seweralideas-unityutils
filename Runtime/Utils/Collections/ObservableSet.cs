@@ -94,6 +94,8 @@ namespace SeweralIdeas.Collections
 
         public ReadonlyObservableSet<T> GetReadonly() => new(this);
 
+        public static implicit operator ReadonlyObservableSet<T>(ObservableSet<T> set) => set.GetReadonly();
+        
         [MustDisposeResource(false)]
         public HashSet<T>.Enumerator GetEnumerator() => m_set.GetEnumerator();
 

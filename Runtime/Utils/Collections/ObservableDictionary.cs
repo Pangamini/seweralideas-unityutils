@@ -90,6 +90,8 @@ namespace SeweralIdeas.Collections
 
         public ReadonlyObservableDictionary<TKey, TVal> GetReadonly() => new(this);
 
+        public static implicit operator ReadonlyObservableDictionary<TKey, TVal>(ObservableDictionary<TKey, TVal> dict) => dict.GetReadonly();
+        
         [MustDisposeResource(false)]
         public Dictionary<TKey ,TVal>.Enumerator GetEnumerator() => m_dict.GetEnumerator();
         
