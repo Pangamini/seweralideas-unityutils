@@ -108,6 +108,20 @@ namespace SeweralIdeas.Collections
             hasValue = m_dict.TryGetValue(key, out var ret);
             return ret;
         }
+        
+        public void SubscribeAndEnumerate(Action<TKey, TVal> onAdded, Action<TKey, TVal> onRemoved)
+        {
+            Added += onAdded;
+            Removed += onRemoved;
+            VisitAll(onAdded);
+        }
+        
+        public void UnsubscribeAndEnumerate(Action<TKey, TVal> onAdded, Action<TKey, TVal> onRemoved)
+        {
+            VisitAll(onRemoved);
+            Added -= onAdded;
+            Removed -= onRemoved;
+        }
     }
 
     public readonly struct ReadonlyObservableDictionary<TKey, TVal> : IEnumerable<KeyValuePair<TKey, TVal>>, IReadonlyObservableDictionary<TKey, TVal>, IEquatable<ReadonlyObservableDictionary<TKey, TVal>>
@@ -146,5 +160,8 @@ namespace SeweralIdeas.Collections
         public override int GetHashCode() => m_observableDict.GetHashCode();
         public static bool operator ==(ReadonlyObservableDictionary<TKey, TVal> left, ReadonlyObservableDictionary<TKey, TVal> right) => left.Equals(right);
         public static bool operator !=(ReadonlyObservableDictionary<TKey, TVal> left, ReadonlyObservableDictionary<TKey, TVal> right) => !left.Equals(right);
+
+        public void SubscribeAndEnumerate(Action<TKey, TVal> onAdded, Action<TKey, TVal> onRemoved) => m_observableDict.SubscribeAndEnumerate(onAdded, onRemoved);
+        public void UnsubscribeAndEnumerate(Action<TKey, TVal> onAdded, Action<TKey, TVal> onRemoved) => m_observableDict.UnsubscribeAndEnumerate(onAdded, onRemoved);
     }
 }
