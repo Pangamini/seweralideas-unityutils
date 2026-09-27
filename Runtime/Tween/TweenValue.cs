@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     public abstract class TweenValue<T> : TweenComponent
     {
@@ -23,7 +23,7 @@ namespace SeweralIdeas.UnityUtils
         public T OffValue => m_offValue;
         public T OnValue => m_onValue;
 
-        protected sealed override void OnValueChanged(float progress)
+        protected override sealed void OnValueChanged(float progress)
         {
             T newValue = Interpolate(progress);
             m_onValueChanged.Invoke(newValue);

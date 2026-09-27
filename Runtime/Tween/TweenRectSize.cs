@@ -2,7 +2,7 @@ using System;
 using SeweralIdeas.UnityUtils;
 using UnityEngine;
 using UnityEngine.UI;
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     public class TweenRectSize : TweenComponent
     {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     public class TweenColor : TweenValue<Color>
     {

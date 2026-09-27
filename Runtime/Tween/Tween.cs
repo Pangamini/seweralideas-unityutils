@@ -3,7 +3,7 @@ using SeweralIdeas.UnityUtils.Drawers;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     [DefaultExecutionOrder(ExecOrder)]
     [DisallowMultipleComponent]
