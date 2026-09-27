@@ -37,6 +37,8 @@ namespace SeweralIdeas.Tweening
         private float m_velocity;
 
         private bool IsCurve => m_mode == Mode.Curve;
+
+        public void Toggle() => IsOn = !IsOn;
         
         public enum Mode
         {
