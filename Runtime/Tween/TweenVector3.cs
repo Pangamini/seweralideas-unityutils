@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     public class TweenVector3 : TweenValue<Vector3>
     {

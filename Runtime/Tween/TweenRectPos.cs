@@ -2,7 +2,7 @@ using System;
 using SeweralIdeas.UnityUtils;
 using SeweralIdeas.UnityUtils.Drawers;
 using UnityEngine;
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     public class TweenRectPos : TweenComponent
     {

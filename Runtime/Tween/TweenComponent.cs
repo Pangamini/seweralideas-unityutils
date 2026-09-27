@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SeweralIdeas.UnityUtils
+namespace SeweralIdeas.Tweening
 {
     [RequireComponent(typeof(Tween))]
     [DefaultExecutionOrder(Tween.ExecOrder - 1)]

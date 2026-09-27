@@ -1,0 +1,23 @@
+{
+    "name": "SeweralIdeas.Tweening",
+    "rootNamespace": "SeweralIdeas.Tweening",
+    "references": [
+        "GUID:ad7941ce49124b942809b4eb6d81bb06",
+        "GUID:df380645f10b7bc4b97d4f5eb6303d95"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.render-pipelines.core",
+            "expression": "1.0.0",
+            "define": "UNITY_RENDER_PIPELINES_CORE"
+        }
+    ],
+    "noEngineReferences": false
+}
