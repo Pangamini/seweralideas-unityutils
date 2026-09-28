@@ -26,7 +26,7 @@ namespace SeweralIdeas.Utils
         [Serializable]
         public struct TypeQuery
         {
-            public Type type;
+            [NonSerialized] public Type type;
             public bool includeAbstract;
             public bool includeSelf;
 

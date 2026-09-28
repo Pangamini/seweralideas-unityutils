@@ -1,4 +1,10 @@
-#nullable enable
+// Generic parameters here are boxed through `object` and juggle both value
+// and reference types, which unconstrained `T?` doesn't model cleanly under
+// nullable-reference analysis. Annotations stay on (so the `?` on fields
+// like _promptText is still meaningful), but warnings are off since the
+// false positives from the T-through-object boxing aren't fixable without
+// reworking the generic signatures.
+#nullable enable annotations
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
