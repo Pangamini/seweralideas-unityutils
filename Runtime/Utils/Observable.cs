@@ -5,11 +5,12 @@ using UnityEngine;
 
 namespace SeweralIdeas.Utils
 {
+    [Obsolete("Observable<T>.Changed no longer reports the previous value (it was unused by nearly every subscriber and was unreliable around subscribe/unsubscribe notifications). Migrate handlers to a single T parameter (Action<T>); compute deltas yourself if you still need one.")]
     public delegate void ObservableAction<in T>(T newValue, T oldValue);
-    
+
     public interface IReadonlyObservable<out T>
     {
-        public event ObservableAction<T> Changed;
+        public event Action<T> Changed;
         public T Value { get; }
     }
 
@@ -23,7 +24,7 @@ namespace SeweralIdeas.Utils
 
         private T _value;
 
-        private ObservableAction<T> _onChanged;
+        private Action<T> _onChanged;
 
         public Observable(T defaultValue = default)
         {
@@ -37,27 +38,25 @@ namespace SeweralIdeas.Utils
             {
                 if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(_value, value))
                     return;
-                var old = _value;
                 _value = value;
-                _onChanged?.Invoke(value, old);
+                _onChanged?.Invoke(value);
             }
         }
 
-        public event ObservableAction<T> Changed
+        // Subscribing immediately invokes the handler with the current value.
+        // Unsubscribing does not invoke the handler.
+        public event Action<T> Changed
         {
             add
             {
                 _onChanged += value;
-                value(Value, default);
+                value(Value);
             }
-            remove
-            {
-                value(default, Value);
-                _onChanged -= value;
-            }
+            remove => _onChanged -= value;
         }
-        
-        public void UnsubscribeWithoutNotify(ObservableAction<T> listener) => _onChanged -= listener;
+
+        [Obsolete("Unsubscribing no longer notifies listeners, so this is now identical to 'Changed -= listener'. Use that instead.")]
+        public void UnsubscribeWithoutNotify(Action<T> listener) => _onChanged -= listener;
 
         public readonly struct Readonly : IReadonlyObservable<T>, IEquatable<Readonly>
         {
@@ -69,14 +68,15 @@ namespace SeweralIdeas.Utils
             private readonly Observable<T> _observable;
             public T Value => _observable.Value;
 
-            public event ObservableAction<T> Changed
+            public event Action<T> Changed
             {
                 add => _observable.Changed += value;
                 remove => _observable.Changed -= value;
             }
 
-            public void UnsubscribeWithoutNotify(ObservableAction<T> listener) => _observable.UnsubscribeWithoutNotify(listener);
-            
+            [Obsolete("Unsubscribing no longer notifies listeners, so this is now identical to 'Changed -= listener'. Use that instead.")]
+            public void UnsubscribeWithoutNotify(Action<T> listener) => _observable.Changed -= listener;
+
             public static implicit operator Readonly(Observable<T> observable) => observable.ReadOnly;
 
             public bool Equals(Readonly other) => _observable.Equals(other._observable);

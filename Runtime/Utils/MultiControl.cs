@@ -25,9 +25,15 @@ namespace SeweralIdeas.Utils
             _observable = new(_defaultValue);
         }
 
-        public MultiControl(T defaultValue, ObservableAction<T> callback) : this(defaultValue)
+        public MultiControl(T defaultValue, Action<T> callback) : this(defaultValue)
         {
             _observable.Changed += callback;
+        }
+
+        [Obsolete("oldValue is no longer tracked and will always equal newValue. Migrate to the Action<T> overload.")]
+        public MultiControl(T defaultValue, ObservableAction<T> callback) : this(defaultValue)
+        {
+            _observable.Changed += v => callback(v, v);
         }
 
         int IComparer<Request>.Compare(Request x, Request y) => CompareRequests(x, y);
