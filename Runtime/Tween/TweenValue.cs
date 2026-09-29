@@ -25,12 +25,12 @@ namespace SeweralIdeas.Tweening
 
         protected override sealed void OnValueChanged(float progress)
         {
-            T newValue = Interpolate(progress);
-            m_onValueChanged.Invoke(newValue);
-            OnValueInterpolated(progress, newValue);
+            T interpolated = Interpolate(progress);
+            m_onValueChanged.Invoke(interpolated);
+            OnValueInterpolated(progress, interpolated);
         }
 
         protected abstract T Interpolate(float t);
-        protected virtual void OnValueInterpolated(float t, T newValue) { }
+        protected virtual void OnValueInterpolated(float progress, T interpolated) { }
     }
 }
