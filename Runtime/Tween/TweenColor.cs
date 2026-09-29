@@ -25,12 +25,12 @@ namespace SeweralIdeas.Tweening
         }
 
         protected override Color Interpolate(float t) => Color.Lerp(OffValue, OnValue, t);
-        protected override void OnValueInterpolated(float value, Color newValue)
+        protected override void OnValueInterpolated(float progress, Color interpolated)
         {
             foreach (var rend in m_renderers)
             {
                 rend.GetPropertyBlock(_propertyBlock);
-                _propertyBlock.SetColor(m_materialPropertyId, newValue);
+                _propertyBlock.SetColor(m_materialPropertyId, interpolated);
                 rend.SetPropertyBlock(_propertyBlock);
             }
         }
