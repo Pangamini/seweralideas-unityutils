@@ -35,6 +35,7 @@ namespace SeweralIdeas.Tweening
         private UnityEvent<bool> m_onTargetValueChanged = new();
         
         private float m_velocity;
+        private bool  m_awoken;
 
         private bool IsCurve => m_mode == Mode.Curve;
 
@@ -81,6 +82,19 @@ namespace SeweralIdeas.Tweening
         
         void Awake()
         {
+            InitializeProgress();
+        }
+
+        public void EnsureInitialized()
+        {
+            InitializeProgress();
+        }
+
+        private void InitializeProgress()
+        {
+            if (m_awoken)
+                return;
+            m_awoken = true;
             m_progress = IsOn ? 1 : 0;
         }
 
