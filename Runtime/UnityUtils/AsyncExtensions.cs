@@ -17,15 +17,15 @@ namespace SeweralIdeas.UnityUtils
             {
                 await task;
             }
-            catch (OperationCanceledException)
+            catch( OperationCanceledException )
             {
             }
-            catch (Exception e)
+            catch( Exception e )
             {
                 Debug.LogException(e);
             }
         }
-        
+
         /// <summary>
         /// Wraps the valuetask in try/catch with UnityEngine.Debug.LogException
         /// </summary>
@@ -36,21 +36,21 @@ namespace SeweralIdeas.UnityUtils
             {
                 await task;
             }
-            catch (OperationCanceledException)
+            catch( OperationCanceledException )
             {
             }
-            catch (Exception e)
+            catch( Exception e )
             {
                 Debug.LogException(e);
             }
         }
-        
+
         /// <summary>
         /// Awaits the task, but throws OperationCanceledException if the token is canceled first.
         /// </summary>
         public async static Task<T> WaitAsync<T>(this Task<T> task, CancellationToken cancellationToken)
         {
-            if (task.IsCompleted) 
+            if(task.IsCompleted)
                 return await task; // fast path
 
             // Create a Task that completes when the token is canceled
@@ -60,7 +60,7 @@ namespace SeweralIdeas.UnityUtils
             {
                 var completed = await Task.WhenAny(task, tcs.Task);
 
-                if (completed == tcs.Task)
+                if(completed == tcs.Task)
                     throw new OperationCanceledException(cancellationToken);
 
                 // Await the original task to propagate exceptions or return the result
@@ -73,7 +73,7 @@ namespace SeweralIdeas.UnityUtils
         /// </summary>
         public async static Task WaitAsync(this Task task, CancellationToken cancellationToken)
         {
-            if (task.IsCompleted)
+            if(task.IsCompleted)
             {
                 await task; // fast path
                 return;
@@ -85,10 +85,24 @@ namespace SeweralIdeas.UnityUtils
             {
                 var completed = await Task.WhenAny(task, tcs.Task);
 
-                if (completed == tcs.Task)
+                if(completed == tcs.Task)
                     throw new OperationCanceledException(cancellationToken);
 
                 await task; // propagate exceptions
+            }
+        }
+
+        public async static ValueTask AwaitDestructionAsync(this MonoBehaviour component, CancellationToken ct = default)
+        {
+            if(!component)
+                return;
+            
+            AwaitableCompletionSource destroyed = new();
+
+            await using (ct.Register(() => destroyed.TrySetCanceled()))
+            await using (component.destroyCancellationToken.Register(() => destroyed.TrySetResult()))
+            {
+                await destroyed.Awaitable;
             }
         }
     }
