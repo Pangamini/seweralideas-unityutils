@@ -1,0 +1,17 @@
+{
+    "name": "SeweralIdeas.ObjectPooling",
+    "rootNamespace": "SeweralIdeas.ObjectPooling",
+    "references": [
+        "SeweralIdeas.UnityUtils",
+        "SeweralIdeas.Drawers"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
