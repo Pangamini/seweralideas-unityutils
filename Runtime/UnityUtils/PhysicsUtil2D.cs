@@ -23,6 +23,11 @@ namespace SeweralIdeas.UnityUtils
         private static void Reset()
         {
             _layerMaskCacheInitialized = false;
+
+            // HideAndDontSave objects outlive the play session when domain reload is off.
+            if (_polygonScratch != null)
+                UnityEngine.Object.DestroyImmediate(_polygonScratch.gameObject);
+            _polygonScratch = null;
         }
 
         // ----- CheckGameObject -----
@@ -266,6 +271,66 @@ namespace SeweralIdeas.UnityUtils
             return OverlapCapsule(center, size, direction, worldAngle, layerMask, result, useTriggers);
         }
 
+        // Physics2D has no polygon shape query, so the polygon is copied onto a hidden scratch collider, placed at the
+        // requested pose, and queried with Physics2D.OverlapCollider. The scratch collider is only enabled for the
+        // duration of the query, so nothing else can ever see (or collide with) it.
+        private static PolygonCollider2D? _polygonScratch;
+
+        public static int OverlapPolygonCollider(PolygonCollider2D polygon, Vector2 position, float angle, Vector2 scale, int layerMask, ICollection<Collider2D> result, bool useTriggers)
+        {
+            PolygonCollider2D scratch = GetPolygonScratch();
+            Transform scratchTransform = scratch.transform;
+
+            // Set everything up while disabled, so the collider enters the physics world already in place.
+            scratchTransform.SetPositionAndRotation(position, Quaternion.Euler(0f, 0f, angle));
+            scratchTransform.localScale = new Vector3(scale.x, scale.y, 1f);
+            scratch.gameObject.layer = polygon.gameObject.layer;
+            scratch.offset = polygon.offset;
+
+            int pathCount = polygon.pathCount;
+            scratch.pathCount = pathCount;
+            using (ListPool<Vector2>.Get(out var path))
+            {
+                for (int i = 0; i < pathCount; i++)
+                {
+                    polygon.GetPath(i, path);
+                    scratch.SetPath(i, path);
+                }
+            }
+
+            var filter = MakeFilter(layerMask, useTriggers);
+            using (ListPool<Collider2D>.Get(out var hits))
+            {
+                scratch.enabled = true;
+                try
+                {
+                    Physics2D.OverlapCollider(scratch, filter, hits);
+                }
+                finally
+                {
+                    scratch.enabled = false;
+                }
+
+                AddRange(hits, result);
+                return hits.Count;
+            }
+        }
+
+        private static PolygonCollider2D GetPolygonScratch()
+        {
+            if (_polygonScratch != null)
+                return _polygonScratch;
+
+            var go = new GameObject("PhysicsUtil2D polygon scratch") { hideFlags = HideFlags.HideAndDontSave };
+            _polygonScratch = go.AddComponent<PolygonCollider2D>();
+            _polygonScratch.isTrigger = true;
+            // Interact with everything, whatever the layer collision matrix says.
+            _polygonScratch.includeLayers = ~0;
+            _polygonScratch.excludeLayers = 0;
+            _polygonScratch.enabled = false;
+            return _polygonScratch;
+        }
+
         // ----- Generic dispatchers -----
 
         public static bool CheckCollider(
@@ -352,6 +417,9 @@ namespace SeweralIdeas.UnityUtils
                     return;
                 case CapsuleCollider2D capsule:
                     OverlapCapsuleCollider(capsule, position, angle, scale, layerMask, result, useTriggers);
+                    return;
+                case PolygonCollider2D polygon:
+                    OverlapPolygonCollider(polygon, position, angle, scale, layerMask, result, useTriggers);
                     return;
                 default:
                     Debug.LogWarning($"Collider2D type {collider.GetType().Name} not supported.");
