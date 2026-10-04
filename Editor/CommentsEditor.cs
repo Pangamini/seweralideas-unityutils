@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 using UnityEditor;
 
 namespace SeweralIdeas.UnityUtils.Editor
@@ -8,37 +7,34 @@ namespace SeweralIdeas.UnityUtils.Editor
     public class CommentsInspector : UnityEditor.Editor
     {
 
-        private Comments script { get { return target as Comments; } }
-        private GUIStyle style = new GUIStyle();
+        private Comments Script => target as Comments;
+        private readonly GUIStyle _style = new GUIStyle();
 
-        // Black and white
-        //private static Color pro = new Color(0.7f, 0.7f, 0.7f, 1f);
-        //private static Color free = new Color(0, 0, 0, 1);
-
-        // Colors
-        private static Color pro = new Color(0.5f, 0.7f, 0.3f, 1f);
-        private static Color free = new Color(0.2f, 0.3f, 0.1f, 1f);
+        private static readonly Color ColorPro  = new Color(0.5f, 0.7f, 0.3f, 1f);
+        private static readonly Color ColorFree = new Color(0.2f, 0.3f, 0.1f, 1f);
 
         public override void OnInspectorGUI()
         {
-            if (serializedObject == null) return;
-
-            style.wordWrap = true;
-            style.normal.textColor = EditorGUIUtility.isProSkin ? pro : free;
+            _style.wordWrap = true;
+            _style.normal.textColor = EditorGUIUtility.isProSkin ? ColorPro : ColorFree;
 
             serializedObject.Update();
-            EditorGUILayout.Space();
+            var property = serializedObject.FindProperty(Comments.PropertyName);
 
-            string text = EditorGUILayout.TextArea(script.text, style);
-            if (text != script.text)
+            // BeginProperty needs the control's rect, which the layout TextArea doesn't expose up front:
+            // wrap it in a vertical group and use that group's rect.
+            Rect rect = EditorGUILayout.BeginVertical();
+            EditorGUI.BeginProperty(rect, GUIContent.none, property);
+            EditorGUI.BeginChangeCheck();
+            string text = EditorGUILayout.TextArea(property.stringValue, _style);
+            if (EditorGUI.EndChangeCheck())
             {
-                Undo.RecordObject(script, "Edit Comments");
-                script.text = text;
+                property.stringValue = text;
+                serializedObject.ApplyModifiedProperties();
             }
+            EditorGUI.EndProperty();
+            EditorGUILayout.EndVertical();
 
-            EditorGUILayout.Space();
-
-            serializedObject.ApplyModifiedProperties();
         }
     }
 }
