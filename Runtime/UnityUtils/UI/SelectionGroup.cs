@@ -46,16 +46,16 @@ namespace SeweralIdeas.UnityUtils
 
         private void OnEnable()
         {
-            _trigger = EventSystemSelectionTrigger.Get();
+            _trigger = EventSystemSelectionTrigger.GetInstance();
             if(_trigger == null)
                 return;
-            _trigger.OnSelectionChanged.AddListener(OnAnySelectionChanged);
+            _trigger.Selection.Changed += OnAnySelectionChanged;
         }
 
         private void OnDisable()
         {
             if(_trigger != null)
-                _trigger.OnSelectionChanged.RemoveListener(OnAnySelectionChanged);
+                _trigger.Selection.Changed -= OnAnySelectionChanged;
             _trigger = null;
             _redirectPending = false;
         }
@@ -63,7 +63,7 @@ namespace SeweralIdeas.UnityUtils
         // Tracks whichever of our children was most recently selected, by
         // whatever means (click, nav, ...), not just while redirecting -
         // otherwise clicking a child directly would never update the memory.
-        private void OnAnySelectionChanged(GameObject selection)
+        private void OnAnySelectionChanged(GameObject? selection)
         {
             if(selection == null || selection == gameObject)
                 return;

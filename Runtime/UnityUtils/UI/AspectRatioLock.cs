@@ -44,9 +44,6 @@ namespace SeweralIdeas.UnityUtils
 
         protected void OnEnable()
         {
-            if(!_gameCamera)
-                _gameCamera = Camera.main;
-
             Apply();
         }
 

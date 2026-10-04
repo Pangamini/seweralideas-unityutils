@@ -1,38 +1,27 @@
 #nullable enable
+using SeweralIdeas.Utils;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
 namespace SeweralIdeas.UnityUtils
 {
-    [RequireComponent(typeof(EventSystem))]
-    public class EventSystemSelectionTrigger : MonoBehaviour
+    public class EventSystemSelectionTrigger : SimpleSingletonBehaviour<EventSystemSelectionTrigger>
     {
-        [SerializeField] private UnityEvent<GameObject> _onSelectionChanged = new();
-        private                  EventSystem            _eventSystem = null!;
-        private                  GameObject?            _reported;
+        private readonly Observable<GameObject?> _selection = new();
         
-        public UnityEvent<GameObject> OnSelectionChanged => _onSelectionChanged;
-        public GameObject Selection => _eventSystem.currentSelectedGameObject;
-
-        public static EventSystemSelectionTrigger Get(EventSystem system) => system.gameObject.GetOrAddComponent<EventSystemSelectionTrigger>();
-
-        public static EventSystemSelectionTrigger Get() => Get(EventSystem.current);
-
+        public Observable<GameObject?>.Readonly Selection => _selection;
+        
         private void Awake()
         {
-            _eventSystem = GetComponent<EventSystem>();
-            _reported = Selection;
+            gameObject.hideFlags = HideFlags.HideAndDontSave;
+            DontDestroyOnLoad(gameObject);
+            _selection.Value = null;
         }
 
         private void LateUpdate()
         {
-            var current = Selection;
-            if(_reported == current)
-                return;
-            _reported = current;
-            
-            OnSelectionChanged.Invoke(current);
+            var system = EventSystem.current;
+            _selection.Value = system? system.currentSelectedGameObject : null;
         }
     }
 }

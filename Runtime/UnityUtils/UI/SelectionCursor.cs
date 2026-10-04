@@ -24,11 +24,10 @@ namespace SeweralIdeas.UnityUtils
 
         protected void OnEnable()
         {
-            _selectionTrigger = EventSystemSelectionTrigger.Get();
+            _selectionTrigger = EventSystemSelectionTrigger.GetInstance();
             if(_selectionTrigger == null)
                 return;
-            _selectionTrigger.OnSelectionChanged.AddListener(OnSelectionChanged);
-            OnSelectionChanged(_selectionTrigger.Selection);
+            _selectionTrigger.Selection.Changed += OnSelectionChanged;
         }
 
         protected void OnDisable()
@@ -36,11 +35,11 @@ namespace SeweralIdeas.UnityUtils
             if(_selectionTrigger == null)
                 return;
             
-            _selectionTrigger.OnSelectionChanged.RemoveListener(OnSelectionChanged);
+            _selectionTrigger.Selection.Changed -= OnSelectionChanged;
             _selectionTrigger = null;
         }
         
-        private void OnSelectionChanged(GameObject selection)
+        private void OnSelectionChanged(GameObject? selection)
         {
             bool snapInstantly = _hasTargetTween ? _hasTargetTween.Progress <= 0.1f :  _follower.Destination == null;
             
