@@ -174,6 +174,10 @@ namespace SeweralIdeas.UnityUtils
             return (worldCenter, worldSize, angle);
         }
 
+        // BoxCollider2D.edgeRadius dilates the box outward by that amount, in every direction (rounded corners).
+        public static float GetBoxEdgeRadius(BoxCollider2D box, Vector2 scale)
+            => box.edgeRadius * Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.y)); // same convention as the circle radius
+
         public static (Vector2 center, float radius) GetCircleColliderParams(CircleCollider2D circle, Vector2 position, float angle, Vector2 scale)
         {
             Vector2 scaledOffset = Vector2.Scale(circle.offset, scale);
@@ -198,7 +202,7 @@ namespace SeweralIdeas.UnityUtils
             var (center, size, worldAngle) = GetBoxColliderParams(box, position, angle, scale);
             using (ListPool<Collider2D>.Get(out var hits))
             {
-                OverlapBox(center, size, worldAngle, layerMask, hits, useTriggers);
+                OverlapRoundedBox(center, size, worldAngle, GetBoxEdgeRadius(box, scale), layerMask, hits, useTriggers);
                 return hits.Count > 0;
             }
         }
@@ -208,7 +212,7 @@ namespace SeweralIdeas.UnityUtils
             var (center, size, worldAngle) = GetBoxColliderParams(box, position, angle, scale);
             using (ListPool<Collider2D>.Get(out var hits))
             {
-                OverlapBox(center, size, worldAngle, layerMask, hits, useTriggers);
+                OverlapRoundedBox(center, size, worldAngle, GetBoxEdgeRadius(box, scale), layerMask, hits, useTriggers);
                 return CheckColliders(hits, filter);
             }
         }
@@ -216,7 +220,7 @@ namespace SeweralIdeas.UnityUtils
         public static int OverlapBoxCollider(BoxCollider2D box, Vector2 position, float angle, Vector2 scale, int layerMask, ICollection<Collider2D> result, bool useTriggers)
         {
             var (center, size, worldAngle) = GetBoxColliderParams(box, position, angle, scale);
-            return OverlapBox(center, size, worldAngle, layerMask, result, useTriggers);
+            return OverlapRoundedBox(center, size, worldAngle, GetBoxEdgeRadius(box, scale), layerMask, result, useTriggers);
         }
 
         public static bool CheckCircleCollider(CircleCollider2D circle, Vector2 position, float angle, Vector2 scale, int layerMask, bool useTriggers)
@@ -441,6 +445,29 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
+        // A box with rounded corners (BoxCollider2D with an edge radius): the box dilated by edgeRadius. Physics2D has no
+        // such query, but the shape is exactly the union of two boxes - each grown along one axis - and a circle on every
+        // corner, so it's queried as those and the hits are merged (without duplicates).
+        public static int OverlapRoundedBox(Vector2 center, Vector2 size, float angle, float edgeRadius, int layerMask, ICollection<Collider2D> result, bool useTriggers)
+        {
+            if (edgeRadius <= 0f)
+                return OverlapBox(center, size, angle, layerMask, result, useTriggers);
+
+            using (HashSetPool<Collider2D>.Get(out var unique))
+            {
+                OverlapBox(center, new Vector2(size.x + 2f * edgeRadius, size.y), angle, layerMask, unique, useTriggers);
+                OverlapBox(center, new Vector2(size.x, size.y + 2f * edgeRadius), angle, layerMask, unique, useTriggers);
+
+                Quaternion rotation = Quaternion.Euler(0f, 0f, angle);
+                for (int corner = 0; corner < 4; corner++)
+                    OverlapCircle(BoxCorner(center, size, rotation, corner), edgeRadius, layerMask, unique, useTriggers);
+
+                foreach (Collider2D collider in unique)
+                    result.Add(collider);
+                return unique.Count;
+            }
+        }
+
         public static int OverlapCircle(Vector2 center, float radius, int layerMask, ICollection<Collider2D> result, bool useTriggers)
         {
             var filter = MakeFilter(layerMask, useTriggers);
@@ -530,7 +557,7 @@ namespace SeweralIdeas.UnityUtils
         public static bool CastBoxCollider(BoxCollider2D box, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit)
         {
             var (center, size, worldAngle) = GetBoxColliderParams(box, position, angle, scale);
-            return BoxCast(center, size, worldAngle, direction, distance, layerMask, useTriggers, out hit);
+            return RoundedBoxCast(center, size, worldAngle, GetBoxEdgeRadius(box, scale), direction, distance, layerMask, useTriggers, out hit);
         }
 
         public static bool CastCircleCollider(CircleCollider2D circle, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit)
@@ -585,6 +612,72 @@ namespace SeweralIdeas.UnityUtils
                 int count = Physics2D.BoxCast(origin, size, angle, direction, filter, hits, distance);
                 return FirstHit(hits, count, out hit);
             }
+        }
+
+        // A box with rounded corners (BoxCollider2D with an edge radius) sweeps out exactly the union of what its parts
+        // sweep out - two boxes, each grown along one axis, and a circle on every corner (see OverlapRoundedBox) - so the
+        // first thing it hits is the nearest of what the parts hit.
+        public static bool RoundedBoxCast(Vector2 origin, Vector2 size, float angle, float edgeRadius, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit)
+        {
+            if (edgeRadius <= 0f)
+                return BoxCast(origin, size, angle, direction, distance, layerMask, useTriggers, out hit);
+
+            bool any = false;
+            RaycastHit2D best = default;
+            RaycastHit2D candidate;
+
+            KeepCloser(BoxCast(origin, new Vector2(size.x + 2f * edgeRadius, size.y), angle, direction, distance, layerMask, useTriggers, out candidate), candidate, ref any, ref best);
+            KeepCloser(BoxCast(origin, new Vector2(size.x, size.y + 2f * edgeRadius), angle, direction, distance, layerMask, useTriggers, out candidate), candidate, ref any, ref best);
+
+            Quaternion rotation = Quaternion.Euler(0f, 0f, angle);
+            for (int corner = 0; corner < 4; corner++)
+            {
+                Vector2 cornerPoint = BoxCorner(origin, size, rotation, corner);
+                KeepCloser(CircleCast(cornerPoint, edgeRadius, direction, distance, layerMask, useTriggers, out candidate), candidate, ref any, ref best);
+            }
+
+            hit = best;
+            return any;
+        }
+
+        public static bool RoundedBoxCast(Vector2 origin, Vector2 size, float angle, float edgeRadius, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
+        {
+            if (edgeRadius <= 0f)
+                return BoxCast(origin, size, angle, direction, distance, layerMask, useTriggers, out hit, filter);
+
+            bool any = false;
+            RaycastHit2D best = default;
+            RaycastHit2D candidate;
+
+            KeepCloser(BoxCast(origin, new Vector2(size.x + 2f * edgeRadius, size.y), angle, direction, distance, layerMask, useTriggers, out candidate, filter), candidate, ref any, ref best);
+            KeepCloser(BoxCast(origin, new Vector2(size.x, size.y + 2f * edgeRadius), angle, direction, distance, layerMask, useTriggers, out candidate, filter), candidate, ref any, ref best);
+
+            Quaternion rotation = Quaternion.Euler(0f, 0f, angle);
+            for (int corner = 0; corner < 4; corner++)
+            {
+                Vector2 cornerPoint = BoxCorner(origin, size, rotation, corner);
+                KeepCloser(CircleCast(cornerPoint, edgeRadius, direction, distance, layerMask, useTriggers, out candidate, filter), candidate, ref any, ref best);
+            }
+
+            hit = best;
+            return any;
+        }
+
+        private static void KeepCloser(bool found, RaycastHit2D candidate, ref bool any, ref RaycastHit2D best)
+        {
+            if (!found || (any && candidate.distance >= best.distance))
+                return;
+
+            best = candidate;
+            any = true;
+        }
+
+        // The four corners of a box (0..3), given its center, size and rotation.
+        private static Vector2 BoxCorner(Vector2 center, Vector2 size, Quaternion rotation, int corner)
+        {
+            float sx = (corner & 1) == 0 ? -1f : 1f;
+            float sy = (corner & 2) == 0 ? -1f : 1f;
+            return center + (Vector2)(rotation * new Vector3(sx * Mathf.Abs(size.x) * 0.5f, sy * Mathf.Abs(size.y) * 0.5f, 0f));
         }
 
         public static bool CircleCast(Vector2 origin, float radius, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit)
@@ -674,7 +767,7 @@ namespace SeweralIdeas.UnityUtils
         public static bool CastBoxCollider(BoxCollider2D box, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
         {
             var (center, size, worldAngle) = GetBoxColliderParams(box, position, angle, scale);
-            return BoxCast(center, size, worldAngle, direction, distance, layerMask, useTriggers, out hit, filter);
+            return RoundedBoxCast(center, size, worldAngle, GetBoxEdgeRadius(box, scale), direction, distance, layerMask, useTriggers, out hit, filter);
         }
 
         public static bool CastCircleCollider(CircleCollider2D circle, Vector2 position, float angle, Vector2 scale, Vector2 direction, float distance, int layerMask, bool useTriggers, out RaycastHit2D hit, RaycastHit2DFilter filter)
