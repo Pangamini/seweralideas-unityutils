@@ -9,7 +9,7 @@ namespace SeweralIdeas.UnityUtils
         {
             if (s_instance == null)
             {
-                s_instance = FindObjectOfType<T>();
+                s_instance = FindAnyObjectByType<T>(FindObjectsInactive.Include);
                 if (s_instance == null)
                 {
                     if(printError)

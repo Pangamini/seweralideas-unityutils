@@ -41,6 +41,11 @@
             "define": "UNITY_TEXTMESHPRO"
         },
         {
+            "name": "com.unity.ugui",
+            "expression": "2.0.0",
+            "define": "UNITY_TEXTMESHPRO"
+        },
+        {
             "name": "com.unity.modules.tilemap",
             "expression": "1.0.0",
             "define": "UNITY_TILEMAP"
