@@ -87,13 +87,12 @@ namespace SeweralIdeas.UnityUtils
             // zero, producing an Infinity or NaN Rect that CalculateViewport has no
             // way to detect - that would get written straight into every tracked
             // RectTransform's anchors and the camera's rect below.
-            if(!_gameCamera || _targetAspect.x <= 0 || _targetAspect.y <= 0 || Screen.width <= 0 || Screen.height <= 0)
+            if( _targetAspect.x <= 0 || _targetAspect.y <= 0 || Screen.width <= 0 || Screen.height <= 0)
                 return;
-
-            EnsureLetterboxUi();
-
+            
             Rect viewport = CalculateViewport();
-            _gameCamera.rect = viewport;
+            if(_gameCamera)
+                _gameCamera.rect = viewport;
 
             if(_uiViewports != null)
             {
