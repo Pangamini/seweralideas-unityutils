@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,11 +9,11 @@ namespace SeweralIdeas.UnityUtils
     [DisallowMultipleComponent]
     public class RectTransformFollower : MonoBehaviour, ILayoutIgnorer
     {
-        [SerializeField] private RectTransform _destination;
-        [SerializeField] private float         _smoothTime   = 0.2f;
-        [SerializeField] private float         _maxSpeed     = Mathf.Infinity;
-        [SerializeField] private bool          _snapOnEnable = true;
-        [SerializeField] private UpdateMode    _updateMode;
+        [SerializeField] private RectTransform? _destination;
+        [SerializeField] private float          _smoothTime   = 0.2f;
+        [SerializeField] private float          _maxSpeed     = Mathf.Infinity;
+        [SerializeField] private bool           _snapOnEnable = true;
+        [SerializeField] private UpdateMode     _updateMode;
 
         public enum UpdateMode : byte
         {
@@ -20,7 +21,7 @@ namespace SeweralIdeas.UnityUtils
             Unscaled
         }
         
-        private RectTransform _rectTransform;
+        private RectTransform? _rectTransform;
         private Vector3       _center;
         private Vector3       _centerVelocity;
         private Vector2       _sizeVelocity;
@@ -30,21 +31,19 @@ namespace SeweralIdeas.UnityUtils
 
         public bool ignoreLayout => true;
 
-        public RectTransform Destination
+        public RectTransform? Destination
         {
             get => _destination;
             set => _destination = value;
         }
 
-        protected void Awake()
-        {
-            _rectTransform = (RectTransform)transform;
-        }
-        
+        public RectTransform GetRectTransform() => _rectTransform = _rectTransform ? _rectTransform : (RectTransform)transform;
+
         protected void OnEnable()
         {
-            _rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            _rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            RectTransform rectTransform = GetRectTransform();
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
 
             _tracker.Clear();
             _tracker.Add(
@@ -55,7 +54,7 @@ namespace SeweralIdeas.UnityUtils
             // Establish the smoothed center from wherever we currently sit, so that if
             // _snapOnEnable is false, Update's first SmoothDamp step starts from the
             // truth instead of (0,0,0).
-            _center = _rectTransform.position + CalculateSelfCenterOffset();
+            _center = rectTransform.position + CalculateSelfCenterOffset();
 
             if(_snapOnEnable)
                 SnapToDestination();
@@ -71,11 +70,12 @@ namespace SeweralIdeas.UnityUtils
             if(!_destination)
                 return;
 
-            _rectTransform.sizeDelta   = CalculateTargetSizeDelta();
-            _rectTransform.eulerAngles = _destination.eulerAngles;
+            RectTransform rectTransform = GetRectTransform();
+            rectTransform.sizeDelta   = CalculateTargetSizeDelta();
+            rectTransform.eulerAngles = _destination.eulerAngles;
 
             _center = CalculateDestinationCenter();
-            _rectTransform.position = _center - CalculateSelfCenterOffset();
+            rectTransform.position = _center - CalculateSelfCenterOffset();
 
             _sizeVelocity     = Vector2.zero;
             _rotationVelocity = Vector3.zero;
@@ -95,15 +95,16 @@ namespace SeweralIdeas.UnityUtils
             };
 
             // Rotation first: the pivot<->center conversion below needs it.
-            Vector3 currentEuler = _rectTransform.eulerAngles;
-            Vector3 targetEuler  = _destination.eulerAngles;
+            RectTransform rectTransform = GetRectTransform();
+            Vector3 currentEuler = rectTransform.eulerAngles;
+            Vector3 targetEuler  = rectTransform.eulerAngles;
             currentEuler.x = Mathf.SmoothDampAngle(currentEuler.x, targetEuler.x, ref _rotationVelocity.x, _smoothTime, _maxSpeed, dt);
             currentEuler.y = Mathf.SmoothDampAngle(currentEuler.y, targetEuler.y, ref _rotationVelocity.y, _smoothTime, _maxSpeed, dt);
             currentEuler.z = Mathf.SmoothDampAngle(currentEuler.z, targetEuler.z, ref _rotationVelocity.z, _smoothTime, _maxSpeed, dt);
-            _rectTransform.eulerAngles = currentEuler;
+            rectTransform.eulerAngles = currentEuler;
 
-            _rectTransform.sizeDelta = Vector2.SmoothDamp(
-                _rectTransform.sizeDelta,
+            rectTransform.sizeDelta = Vector2.SmoothDamp(
+                rectTransform.sizeDelta,
                 CalculateTargetSizeDelta(),
                 ref _sizeVelocity,
                 _smoothTime,
@@ -127,13 +128,13 @@ namespace SeweralIdeas.UnityUtils
             // Converting the smoothed center back to a pivot position is a plain
             // algebraic step using this frame's already-smoothed size/rotation - not
             // itself part of the smoothing - so it can't reintroduce the coupling above.
-            _rectTransform.position = _center - CalculateSelfCenterOffset();
+            rectTransform.position = _center - CalculateSelfCenterOffset();
         }
 
         private Vector2 CalculateTargetSizeDelta()
         {
             Vector2 targetWorldSize = Vector2.Scale(_destination.rect.size, _destination.lossyScale);
-            Vector2 selfScale       = _rectTransform.lossyScale;
+            Vector2 selfScale       = GetRectTransform().lossyScale;
             return new Vector2(targetWorldSize.x / selfScale.x, targetWorldSize.y / selfScale.y);
         }
 
@@ -146,8 +147,9 @@ namespace SeweralIdeas.UnityUtils
 
         private Vector3 CalculateSelfCenterOffset()
         {
-            return _rectTransform.TransformVector(
-                new Vector3((0.5f - _rectTransform.pivot.x) * _rectTransform.rect.width, (0.5f - _rectTransform.pivot.y) * _rectTransform.rect.height, 0f));
+            RectTransform rectTransform = GetRectTransform();
+            return rectTransform.TransformVector(
+                new Vector3((0.5f - rectTransform.pivot.x) * rectTransform.rect.width, (0.5f - rectTransform.pivot.y) * rectTransform.rect.height, 0f));
         }
     }
 }
