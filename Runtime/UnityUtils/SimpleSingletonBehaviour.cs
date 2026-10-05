@@ -18,7 +18,7 @@ namespace SeweralIdeas.UnityUtils
             return s_instance;
         }
 
-        void Awake()
+        protected void Awake()
         {
             if (s_instance == null)
                 s_instance = (T)this;
