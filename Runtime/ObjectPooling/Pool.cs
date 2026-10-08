@@ -24,8 +24,6 @@ namespace SeweralIdeas.ObjectPooling
         public T Take(Vector3 position, Quaternion rotation, bool active = true, Transform parent = null) =>
             (T)_pool.Take(position, rotation, active, parent);
 
-        public void Return(T obj) => _pool.Return(obj);
-
         /// <inheritdoc cref="ObjectPool{T}.Prewarm"/>
         public void Prewarm(int count) => _pool.Prewarm(count);
     }

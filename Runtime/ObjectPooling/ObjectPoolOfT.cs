@@ -11,10 +11,10 @@ namespace SeweralIdeas.ObjectPooling
     /// A pool of instances of one prefab. The pool is itself an inactive GameObject and its instances live under it,
     /// so a new instance stays dormant (no Awake, no OnEnable) until it is activated.
     ///
-    /// The lifecycle is Unity's own, nothing is added to it: an instance gets its Awake once, the first time it is
-    /// activated; OnEnable every time it is activated; Start once, before its first Update. Returning it to the pool
-    /// deactivates it (OnDisable). For a <see cref="Spawnable"/>, OnSpawn is "enabled and started": on OnEnable for a
-    /// reused instance, on Start for a new one.
+    /// Every instance is a <see cref="Spawnable"/> (one is added to a prefab that doesn't have it): the pool hands it out
+    /// spawned, or, with <c>Take(active: false)</c>, to be set up by the caller, who then calls <see cref="Spawnable.Spawn"/>.
+    /// An instance goes back to the pool when it is despawned (<see cref="Spawnable.Despawn"/>), which deactivates it.
+    /// A new instance has had its Awake before it is handed out, and has not had its Start.
     ///
     /// Unity can't add a generic component, so a pool is a component through a concrete subclass:
     /// <see cref="ComponentPool"/>, or <c>class BulletPool : ObjectPool&lt;Bullet&gt; { }</c> for a pool that hands out its
@@ -90,51 +90,50 @@ namespace SeweralIdeas.ObjectPooling
             while(_stack.Count < count)
             {
                 T instance = CreateInstance();
-                EnsureAwake(instance);
+                Spawnable root = SetUpSpawnable(instance);
+                EnsureAwake(root);
                 instance.transform.SetParent(transform);
 
-                PoolReference reference = SetUpPoolReference(instance);
-                reference.InPool = true;
+                root.InPool = true;
                 _stack.Push(instance);
             }
         }
 
-        public void Return(T obj)
+        // Takes in a spawnable whose life is over, deactivated: back into the stack, or destroyed if the pool is full.
+        internal override void ReturnInstance(Spawnable root)
         {
-            PoolReference reference = obj.gameObject.GetOrAddComponent<PoolReference>();
-            if(reference.InPool)
+            if(root.InPool)
             {
-                Debug.LogError($"{obj.name} is already in the pool.", obj);
+                Debug.LogError($"{root.name} is already in the pool.", root);
                 return;
             }
 
-            obj.gameObject.SetActive(false); // despawns it: the Spawnables on it get their OnDespawn
+            root.gameObject.SetActive(false);
 
             if(_maxSize > 0 && _stack.Count >= _maxSize)
                 PruneDestroyed();
 
             if(_maxSize > 0 && _stack.Count >= _maxSize)
             {
-                Destroy(obj.gameObject);
+                Destroy(root.gameObject);
                 return;
             }
 
-            reference.InPool = true;
-            obj.transform.SetParent(transform);
-            _stack.Push(obj);
+            root.InPool = true;
+            root.transform.SetParent(transform);
+            _stack.Push((T)root.PoolHandle);
         }
 
-        internal override void ReturnInstance(Component instance) => Return((T)instance);
-
         /// <summary>
-        /// Takes an instance out of the pool, or makes a new one. Pass active: false to get it deactivated, to put it
-        /// in place before activating it yourself. It has had its Awake by then, but not its Start.
+        /// Takes an instance out of the pool, or makes a new one, and spawns it. Pass active: false to get it
+        /// un-spawned and deactivated, to put it in place before calling <see cref="Spawnable.Spawn"/> on it yourself.
+        /// It has had its Awake by then, but not its Start.
         /// </summary>
         public T Take(bool active = true, Transform parent = null) => TakeInstance(active, parent, null);
 
         /// <summary>
         /// <see cref="Take(bool, Transform)"/>, placed at a world <paramref name="position"/> and <paramref name="rotation"/>
-        /// before it is activated, so that its OnEnable (and Start) already see it there.
+        /// before it is spawned, so that its OnEnable and OnSpawn already see it there.
         /// </summary>
         public T Take(Vector3 position, Quaternion rotation, bool active = true, Transform parent = null) =>
             TakeInstance(active, parent, new Pose(position, rotation));
@@ -161,9 +160,11 @@ namespace SeweralIdeas.ObjectPooling
             // at this point, instance is parented to the pool. Make it inactive by itself
             instance.gameObject.SetActive(false);
 
-            // Whoever takes it inactive wants to set it up before it is activated, so it has to have had its Awake
+            Spawnable root = SetUpSpawnable(instance);
+
+            // Whoever takes it un-spawned wants to set it up first, so it has to have had its Awake
             if(!active)
-                EnsureAwake(instance);
+                EnsureAwake(root);
 
             // when inactive self, we can set parent
             instance.transform.SetParent(parent);
@@ -172,11 +173,8 @@ namespace SeweralIdeas.ObjectPooling
             if(pose is { } placement)
                 instance.transform.SetPositionAndRotation(placement.position, placement.rotation);
 
-            // set up the pool reference
-            SetUpPoolReference(instance);
-
             if(active)
-                instance.gameObject.SetActive(true);
+                root.Spawn();
 
             return instance;
         }
@@ -198,24 +196,26 @@ namespace SeweralIdeas.ObjectPooling
             }
         }
 
-        private PoolReference SetUpPoolReference(T instance)
+        // The instance's root, which is the pool's way back to it. A prefab that has none gets a plain one, before any
+        // Awake can run on it, so that its parts find it.
+        private Spawnable SetUpSpawnable(T instance)
         {
-            PoolReference reference = instance.gameObject.GetOrAddComponent<PoolReference>();
-            reference.OnTakenFromPool(this, instance);
-            return reference;
+            Spawnable root = instance.gameObject.GetOrAddComponent<Spawnable>();
+            root.OnTakenFromPool(this, instance);
+            return root;
         }
 
         // An instance under the pool can't wake up, the pool being inactive. Activated for a moment under an active
         // parent in the same scene it does, and gets its Awake and OnEnable, and OnDisable when deactivated again - as it
         // would have, instantiated as a root object. It is left inactive and under the stage, for the caller to move.
-        private void EnsureAwake(T instance)
+        private void EnsureAwake(Spawnable root)
         {
-            if(instance is MonoBehaviour behaviour && behaviour.didAwake)
+            if(root.IsAwake)
                 return;
 
-            instance.transform.SetParent(ObjectPoolManager.GetInstance(gameObject.scene).Stage);
-            instance.gameObject.SetActive(true);
-            instance.gameObject.SetActive(false);
+            root.transform.SetParent(ObjectPoolManager.GetInstance(gameObject.scene).Stage);
+            root.gameObject.SetActive(true);
+            root.gameObject.SetActive(false);
         }
     }
 }
