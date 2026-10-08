@@ -16,6 +16,7 @@
 - `Spawnable.SpawnCancellationToken`: a token for one life of the object, cancelled when it despawns (or is destroyed), for async work that must not outlive the life. A new one for every life, made when first asked for, and disposed on despawn. It throws if the object isn't spawned. An exception from a callback on the token is logged and doesn't keep `OnDespawn` from running.
 
 ### Fixed
+- The delayed text fields (`SeweralGUI.DelayedTextField` / `DelayedTextArea`) showed a committed value (Enter) or released focus only once the mouse moved: nothing repainted the window after the key press, and `GUI.FocusControl(null)` takes effect on the next event. They release the keyboard focus at once and request a repaint when they commit, cancel or change focus.
 - `[ReadOnly]`, `[EditorOnly]`, `[PlayerOnly]` and `[Button]` no longer re-enable the GUI: they used to set `GUI.enabled` to `true` (or to their own value) afterwards, so a field inside an already disabled region, and everything after it, came back enabled. They now disable on top of the surrounding state.
 - `[EnumFlag]` showed "mixed" whenever several objects were selected (it compared boxed enums by reference); it now uses the serialized property's own mixed-value state, and shows a message on a non-enum field instead of throwing.
 - `[BitMask]` wrote the field on every repaint, so selecting several objects with different values changed them all to the first one's value. It now writes only when edited, and shows mixed values.

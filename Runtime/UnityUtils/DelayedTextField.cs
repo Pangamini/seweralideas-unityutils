@@ -34,7 +34,7 @@ namespace SeweralIdeas.UnityUtils
             if(Event.current.type == EventType.KeyDown && Event.current.keyCode is KeyCode.Escape)
             {
                 state.HasFocus = false;
-                GUI.FocusControl(null); // Remove focus
+                ReleaseFocus();
                 Event.current.Use();
             }
             
@@ -58,13 +58,35 @@ namespace SeweralIdeas.UnityUtils
                 currentValue = state.Text;
                 if(enterPressed)
                 {
-                    GUI.FocusControl(null); // Remove focus
+                    ReleaseFocus();
                 }
             }
 
-            state.HasFocus = (GUI.GetNameOfFocusedControl() == controlID.ToString());
+            bool hasFocus = GUI.GetNameOfFocusedControl() == controlID.ToString();
+
+            // Nothing repaints a window on a key press by itself: without this the committed value, and the focus that
+            // is gone, show only when the mouse moves.
+            if(hasFocus != state.HasFocus)
+                RequestRepaint();
+            state.HasFocus = hasFocus;
 
             return currentValue;
+        }
+
+        // Takes the keyboard focus from the field now (FocusControl alone takes effect on the next event), and has the
+        // window show it.
+        private static void ReleaseFocus()
+        {
+            GUI.FocusControl(null);
+            GUIUtility.keyboardControl = 0;
+            RequestRepaint();
+        }
+
+        private static void RequestRepaint()
+        {
+            #if UNITY_EDITOR
+            UnityEditor.HandleUtility.Repaint();
+            #endif
         }
 
         private class TextFieldState
