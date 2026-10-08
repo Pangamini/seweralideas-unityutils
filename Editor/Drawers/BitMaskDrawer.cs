@@ -66,8 +66,16 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
         public override void OnGUI(Rect position, SerializedProperty prop, GUIContent label)
         {
             var typeAttr = attribute as BitMaskAttribute;
-            // Add the actual int value behind the field name
-            prop.intValue = EditorExtension.DrawBitMaskField(position, prop.intValue, typeAttr.enumType, typeAttr.isFlagsEnum, label);
+
+            // Only written when edited: writing it every time would turn differing values of a multi-object selection into one.
+            EditorGUI.BeginProperty(position, label, prop);
+            EditorGUI.showMixedValue = prop.hasMultipleDifferentValues;
+            EditorGUI.BeginChangeCheck();
+            int newValue = EditorExtension.DrawBitMaskField(position, prop.intValue, typeAttr.enumType, typeAttr.isFlagsEnum, label);
+            if (EditorGUI.EndChangeCheck())
+                prop.intValue = newValue;
+            EditorGUI.showMixedValue = false;
+            EditorGUI.EndProperty();
         }
     }
 }

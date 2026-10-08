@@ -23,7 +23,7 @@ namespace SeweralIdeas.ObjectPooling
                 return false;
             }
 
-            _pool.Return(_referred);
+            _pool.ReturnInstance(_referred);
             return true;
         }
 

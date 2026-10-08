@@ -5,7 +5,7 @@ namespace SeweralIdeas.ObjectPooling
 {
     /// <summary>
     /// Fills the scene's pool of a prefab with a number of instances at Start, each one with its Awake already done
-    /// (see <see cref="ObjectPool.Prewarm"/>). Add one per prefab to prewarm.
+    /// (see <see cref="ObjectPool{T}.Prewarm"/>). Add one per prefab to prewarm.
     /// </summary>
     public class PoolPrewarmer : MonoBehaviour
     {
@@ -21,7 +21,7 @@ namespace SeweralIdeas.ObjectPooling
                 return;
             }
 
-            ObjectPoolManager.GetOrCreate(gameObject.scene).GetPool(_prefab).Prewarm(_count);
+            ObjectPoolManager.GetInstance(gameObject.scene).GetPool(_prefab).Prewarm(_count);
         }
     }
 }

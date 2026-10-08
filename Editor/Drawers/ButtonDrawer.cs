@@ -1,37 +1,45 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 using System.Reflection;
 
 namespace SeweralIdeas.UnityUtils.Drawers.Editor
 {
     [CustomPropertyDrawer(typeof(ButtonAttribute))]
-    public class ButtonDrawer : PropertyDrawer
+    public class ButtonDrawer : PropertyDrawer, IChainedDrawer
     {
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
+            DrawerChain.Start(this).GetHeight(property, label);
+
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) =>
+            DrawerChain.Start(this).Draw(position, property, label);
+
+        float IChainedDrawer.GetHeightChained(SerializedProperty property, GUIContent label, DrawerChain.Next next)
         {
             var height = EditorGUIUtility.singleLineHeight;
             var attr = (ButtonAttribute)attribute;
             if (attr.showOriginal)
-                height += EditorGUI.GetPropertyHeight(property, label, true);
+                height += next.GetHeight(property, label);
             return height;
         }
 
-        public override void OnGUI(Rect position,
-            SerializedProperty property,
-            GUIContent label)
+        void IChainedDrawer.OnGUIChained(Rect position, SerializedProperty property, GUIContent label, DrawerChain.Next next)
         {
             var attr = (ButtonAttribute)attribute;
-
-            var wasGuiEnabled = GUI.enabled;
-            if (Application.isPlaying)
-                GUI.enabled = attr.player;
-            else
-                GUI.enabled = attr.editor;
 
             var lh = EditorGUIUtility.singleLineHeight;
             var buttonsPos = new Rect(position.x, position.y, position.width, lh);
             var origPosition = new Rect(position.x, position.y + lh, position.width, position.height - lh);
 
+            // Disabled on top of whatever is disabled around it, never enabled against it.
+            using (new EditorGUI.DisabledScope(!(Application.isPlaying ? attr.player : attr.editor)))
+                DrawButtons(buttonsPos, property, attr);
+
+            if (attr.showOriginal)
+                next.Draw(origPosition, property, label);
+        }
+
+        private static void DrawButtons(Rect buttonsPos, SerializedProperty property, ButtonAttribute attr)
+        {
             var count = System.Math.Min(attr.m_labels.Length, attr.m_methods.Length);
             var width = buttonsPos.width / count;
             for (int i = 0; i < count; ++i)
@@ -62,11 +70,6 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
                     }
                 }
             }
-
-            GUI.enabled = wasGuiEnabled;
-
-            if (attr.showOriginal)
-                EditorGUI.PropertyField(origPosition, property, label, true);
         }
     }
 }
