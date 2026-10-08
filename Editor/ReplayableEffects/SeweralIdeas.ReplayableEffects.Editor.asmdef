@@ -1,0 +1,20 @@
+{
+    "name": "SeweralIdeas.ReplayableEffects.Editor",
+    "rootNamespace": "SeweralIdeas.ReplayableEffects.Editor",
+    "references": [
+        "GUID:cf5a3647f2623f044943c7d12af0b6c4",
+        "GUID:b5d478c5cd889284bb8259babb502cc9",
+        "GUID:6d326f1d0bf64d242bbd14286a7be3b7"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
