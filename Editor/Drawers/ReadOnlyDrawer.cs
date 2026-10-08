@@ -1,24 +1,24 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 
 namespace SeweralIdeas.UnityUtils.Drawers.Editor
 {
     [CustomPropertyDrawer(typeof(ReadOnlyAttribute))]
-    public class ReadOnlyDrawer : PropertyDrawer
+    public class ReadOnlyDrawer : PropertyDrawer, IChainedDrawer
     {
-        public override float GetPropertyHeight(SerializedProperty property,
-            GUIContent label)
-        {
-            return EditorGUI.GetPropertyHeight(property, label, true);
-        }
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
+            DrawerChain.Start(this).GetHeight(property, label);
 
-        public override void OnGUI(Rect position,
-            SerializedProperty property,
-            GUIContent label)
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) =>
+            DrawerChain.Start(this).Draw(position, property, label);
+
+        float IChainedDrawer.GetHeightChained(SerializedProperty property, GUIContent label, DrawerChain.Next next) =>
+            next.GetHeight(property, label);
+
+        void IChainedDrawer.OnGUIChained(Rect position, SerializedProperty property, GUIContent label, DrawerChain.Next next)
         {
-            GUI.enabled = false;
-            EditorGUI.PropertyField(position, property, label, true);
-            GUI.enabled = true;
+            using (new EditorGUI.DisabledScope(true))
+                next.Draw(position, property, label);
         }
     }
 }

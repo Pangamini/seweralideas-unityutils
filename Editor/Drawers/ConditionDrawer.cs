@@ -5,25 +5,27 @@ using UnityEditor;
 namespace SeweralIdeas.UnityUtils.Drawers.Editor
 {
     [CustomPropertyDrawer(typeof(ConditionAttribute))]
-    public class ConditionDrawer : PropertyDrawer
+    public class ConditionDrawer : PropertyDrawer, IChainedDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            if (ShouldShow(property))
-            {
-                EditorGUI.PropertyField(position, property, label, true);
-            }
+            DrawerChain.Start(this).Draw(position, property, label);
         }
 
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
+            DrawerChain.Start(this).GetHeight(property, label);
+
+        void IChainedDrawer.OnGUIChained(Rect position, SerializedProperty property, GUIContent label, DrawerChain.Next next)
         {
-            return ShouldShow(property) ? EditorGUI.GetPropertyHeight(property, label, true) : 0f;
+            if (ShouldShow(property, (ConditionAttribute)attribute))
+                next.Draw(position, property, label);
         }
 
-        private bool ShouldShow(SerializedProperty property)
-        {
-            ConditionAttribute conditionAttr = (ConditionAttribute)attribute;
+        float IChainedDrawer.GetHeightChained(SerializedProperty property, GUIContent label, DrawerChain.Next next) =>
+            ShouldShow(property, (ConditionAttribute)attribute) ? next.GetHeight(property, label) : 0f;
 
+        private static bool ShouldShow(SerializedProperty property, ConditionAttribute conditionAttr)
+        {
             object target = GetTargetObject(property);
             if (target == null)
                 return true;
@@ -49,7 +51,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             return true;
         }
 
-        private object GetTargetObject(SerializedProperty prop)
+        private static object GetTargetObject(SerializedProperty prop)
         {
             object obj = prop.serializedObject.targetObject;
             string[] elements = prop.propertyPath.Replace(".Array.data[", "[").Split('.');
@@ -74,7 +76,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             return obj;
         }
 
-        private object GetValue(object source, string name)
+        private static object GetValue(object source, string name)
         {
             if (source == null)
                 return null;
@@ -91,7 +93,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             return null;
         }
 
-        private object GetValue(object source, string name, int index)
+        private static object GetValue(object source, string name, int index)
         {
             var enumerable = GetValue(source, name) as System.Collections.IEnumerable;
             if (enumerable == null)

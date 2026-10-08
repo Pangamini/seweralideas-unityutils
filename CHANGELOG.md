@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+### Breaking changes
+- Object pools are typed.
+### Added
+- `Take(position, rotation, active = true, parent = null)` on `ObjectPool<T>` and `Pool<T>`: the instance is placed (world space) before it is activated, so its OnEnable and Start already see it there.
+- `DrawerChain` and `IChainedDrawer`: Unity runs only one property drawer per field, so a field with several drawer attributes had all but one ignored. A drawer that implements `IChainedDrawer` (and starts with `DrawerChain.Start(this)` in OnGUI and GetPropertyHeight) now runs the field's drawers in `order` order and passes control on to the next one. A drawer that isn't chained still works, but ends the chain. It finds the other drawers and fills in `PropertyDrawer`'s private `m_Attribute` and `m_FieldInfo` by reflection, so it may need attention when Unity changes those.
+- `[Flatten]`: draws a field whose type has a single serialized field as that inner field, under the outer field's name (display only; the serialized data keeps the wrapper). Falls back to normal drawing if the type doesn't have exactly one visible field.
+
+### Fixed
+- `[ReadOnly]`, `[EditorOnly]`, `[PlayerOnly]` and `[Button]` no longer re-enable the GUI: they used to set `GUI.enabled` to `true` (or to their own value) afterwards, so a field inside an already disabled region, and everything after it, came back enabled. They now disable on top of the surrounding state.
+- `[EnumFlag]` showed "mixed" whenever several objects were selected (it compared boxed enums by reference); it now uses the serialized property's own mixed-value state, and shows a message on a non-enum field instead of throwing.
+- `[BitMask]` wrote the field on every repaint, so selecting several objects with different values changed them all to the first one's value. It now writes only when edited, and shows mixed values.
+- `[InstantiateGUI]`: the type dropdown used a `SerializedProperty` after the `OnGUI` that made it was over; it now finds the property again by path, and gives every selected object its own instance.
+- `[Angle]` set `GUI.matrix` and `GUI.color` to the defaults afterwards, not to what they were.
+
+### Changed
+- `[ReadOnly]`, `[EditorOnly]`, `[PlayerOnly]`, `[Color]`, `[Units]` and `[Button]` are chained drawers, so they combine with each other and with `[Condition]` and `[Flatten]` on one field.
+- `ConditionDrawer` is chained: other drawer attributes on a `[Condition]` field (such as `[ReadOnly]` or `[Flatten]`) now apply, so long as they come after it in `order` (attributes of equal order keep declaration order).
+
 ## [0.2.0]
 The first entry since 0.1.4 (April 2023), so it covers a lot. Written from the commit history, grouped by area.
 

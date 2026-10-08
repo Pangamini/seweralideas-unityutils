@@ -6,15 +6,15 @@ using UnityEngine.SceneManagement;
 namespace SeweralIdeas.ObjectPooling
 {
     /// <summary>Finds or creates the pool of a prefab, one per scene.</summary>
-    public class ObjectPoolManager : SceneSingleton<ObjectPoolManager>
+    public class ObjectPoolManager : SimpleSceneSingleton<ObjectPoolManager>
     {
-        private readonly Dictionary<Component, ObjectPool> _prefabToPool = new();
+        private readonly Dictionary<Component, ComponentPool> _prefabToPool = new();
         private readonly List<IDelayedRelease>             _delayedReleases = new();
         private          Transform                         _stage;
 
         /// <summary>
         /// An active parent in this scene, for the pools to wake a new instance up under for a moment (see
-        /// ObjectPool.EnsureAwake): their own objects are inactive. One for all the pools, made when first needed.
+        /// ObjectPool{T}.EnsureAwake): their own objects are inactive. One for all the pools, made when first needed.
         /// </summary>
         public Transform Stage
         {
@@ -52,7 +52,7 @@ namespace SeweralIdeas.ObjectPooling
             base.OnAwake();
 
             // Pools placed in the scene under the manager
-            ObjectPool[] children = GetComponentsInChildren<ObjectPool>(true);
+            ComponentPool[] children = GetComponentsInChildren<ComponentPool>(true);
             foreach (var child in children)
             {
                 if(child.Prefab != null)
@@ -60,20 +60,10 @@ namespace SeweralIdeas.ObjectPooling
             }
         }
 
-        /// <summary>The scene's manager. Creates one if the scene doesn't have one yet.</summary>
-        public static ObjectPoolManager GetOrCreate(Scene scene)
-        {
-            ObjectPoolManager instance = GetInstance(scene);
-            if(instance)
-                return instance;
+        /// <summary>The pool of a prefab, handing out its instances as the type the prefab is known by here.</summary>
+        public Pool<T> GetPool<T>(T prefab) where T : Component => new(GetComponentPool(prefab));
 
-            // A new GameObject starts out in the active scene, which may not be the one asked for.
-            var go = new GameObject(nameof(ObjectPoolManager));
-            SceneManager.MoveGameObjectToScene(go, scene);
-            return go.AddComponent<ObjectPoolManager>(); // registers itself in Awake
-        }
-
-        public ObjectPool GetPool(Component prefab)
+        private ComponentPool GetComponentPool(Component prefab)
         {
             if(_prefabToPool.TryGetValue(prefab, out var pool))
             {
@@ -89,7 +79,7 @@ namespace SeweralIdeas.ObjectPooling
 
             var go = new GameObject($"Pool({prefab})");
             go.transform.SetParent(transform);
-            pool = go.AddComponent<ObjectPool>();   // its Awake runs now, before it has a prefab, and does nothing
+            pool = go.AddComponent<ComponentPool>();   // its Awake runs now, before it has a prefab, and does nothing
             pool.Prefab = prefab;
             pool.Initialize();
 

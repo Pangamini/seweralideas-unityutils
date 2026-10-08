@@ -6,6 +6,7 @@ using SeweralIdeas.UnityUtils.Editor;
 using SeweralIdeas.Utils;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace SeweralIdeas.UnityUtils.Drawers.Editor
 {
@@ -51,17 +52,26 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
                 var myLabel = new GUIContent($"{label.text} ({attrib.BaseType.Name})");
                 EditorGUI.LabelField(position, myLabel, new GUIContent("null"));
 
-                Action<Type> onTypeSelected = type =>
-                {
-                    property.managedReferenceValue = Activator.CreateInstance(type);
-                    property.serializedObject.ApplyModifiedProperties();
-                };
-
                 if(GUI.Button(buttonRect, GUIContent.none, s_stylePlus))
                 {
+                    // The SerializedProperty is only good for this OnGUI, the dropdown answers later: find the property again then.
+                    Object[] targets = property.serializedObject.targetObjects;
+                    string path = property.propertyPath;
+
                     TypeUtility.TypeQuery typeQuery = new TypeUtility.TypeQuery(attrib.BaseType, false, true);
-                    TypeDropdown.ShowTypeDropdown(buttonRect, typeQuery, onTypeSelected);
+                    TypeDropdown.ShowTypeDropdown(buttonRect, typeQuery, type => OnTypeSelected(type, targets, path));
                 }
+            }
+        }
+
+        // One instance per target: with a shared one, editing one object's value would change the others'.
+        private static void OnTypeSelected(Type type, Object[] targets, string path)
+        {
+            foreach (Object target in targets)
+            {
+                using var serializedObject = new SerializedObject(target);
+                serializedObject.FindProperty(path).managedReferenceValue = Activator.CreateInstance(type);
+                serializedObject.ApplyModifiedProperties();
             }
         }
 

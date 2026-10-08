@@ -36,11 +36,14 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             var pinSize = new Vector2(thumbSize.x*0.5f + pinWidth*0.5f, pinWidth);
             var pinRect = new Rect(center.x - pinWidth * 0.5f, center.y - pinSize.y*0.5f, pinSize.x, pinSize.y);
 
+            // Put back what was there, not the defaults: the drawer may be inside a transformed or tinted GUI.
+            var oldColor = GUI.color;
+            var oldMatrix = GUI.matrix;
             GUI.color = Color.black;
             GUIUtility.RotateAroundPivot(-degrees, center);
             GUI.DrawTexture(pinRect, EditorGUIUtility.whiteTexture);
-            GUI.color = Color.white;
-            GUI.matrix = Matrix4x4.identity;
+            GUI.color = oldColor;
+            GUI.matrix = oldMatrix;
 
             var propertyRect = new Rect(thumbRect.xMax, thumbRect.y, position.xMax - thumbRect.xMax, EditorGUIUtility.singleLineHeight);
             var oldWidth = EditorGUIUtility.labelWidth;

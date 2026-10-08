@@ -64,7 +64,7 @@ namespace SeweralIdeas.ObjectPooling
                 return;
 
             _releaseQueued = true;
-            ObjectPoolManager.GetOrCreate(gameObject.scene).ReleaseAtEndOfFrame(this);
+            ObjectPoolManager.GetInstance(gameObject.scene).ReleaseAtEndOfFrame(this);
         }
 
         /// <summary>
