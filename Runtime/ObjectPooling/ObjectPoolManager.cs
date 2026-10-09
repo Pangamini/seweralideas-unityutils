@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using SeweralIdeas.UnityUtils;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.SceneManagement;
 
 namespace SeweralIdeas.ObjectPooling
@@ -38,6 +39,8 @@ namespace SeweralIdeas.ObjectPooling
 
         protected void LateUpdate()
         {
+            DestroyPoolsOfDestroyedPrefabs();
+
             if(_delayedReleases.Count == 0)
                 return;
 
@@ -45,6 +48,18 @@ namespace SeweralIdeas.ObjectPooling
             for( int i = 0; i < _delayedReleases.Count; ++i )
                 _delayedReleases[i].ReleaseNow();
             _delayedReleases.Clear();
+        }
+
+        // A pool whose prefab was destroyed (an object of the scene) has nothing to make instances from. The pool watches
+        // for it itself (see ObjectPool<T>.Initialize), but that needs the prefab to tell, which an object that was never
+        // active (OnDestroy isn't called on it) may not; looking at the prefabs is sure to notice.
+        private void DestroyPoolsOfDestroyedPrefabs()
+        {
+            foreach (var entry in _prefabToPool)
+            {
+                if(entry.Key == null && entry.Value != null)
+                    Destroy(entry.Value.gameObject);
+            }
         }
 
         protected override void OnAwake()
@@ -65,6 +80,11 @@ namespace SeweralIdeas.ObjectPooling
 
         private ComponentPool GetComponentPool(Component prefab)
         {
+            // A destroyed prefab can't make instances, and its pool is gone (or going) with it. Making a new pool for it
+            // would only fail later, as Pool(null).
+            if(prefab == null)
+                throw new MissingReferenceException("Cannot get a pool of a prefab that is null or has been destroyed.");
+
             if(_prefabToPool.TryGetValue(prefab, out var pool))
             {
                 if(pool == null)    // if pool was destroyed for some reason
@@ -75,6 +95,19 @@ namespace SeweralIdeas.ObjectPooling
                 {
                     return pool;
                 }
+            }
+
+            // The pools of destroyed prefabs are gone with them (see ObjectPool<T>.Initialize); their entries are not
+            using (ListPool<Component>.Get(out var gone))
+            {
+                foreach (var entry in _prefabToPool)
+                {
+                    if(entry.Value == null)
+                        gone.Add(entry.Key);
+                }
+
+                foreach (Component key in gone)
+                    _prefabToPool.Remove(key);
             }
 
             var go = new GameObject($"Pool({prefab})");

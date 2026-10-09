@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using SeweralIdeas.UnityUtils;
 using SeweralIdeas.UnityUtils.Drawers;
 using UnityEngine;
@@ -29,6 +30,8 @@ namespace SeweralIdeas.ObjectPooling
 
         private readonly Stack<T> _stack = new();
         private bool _initialized;
+        private CancellationTokenRegistration _prefabDestroyed; // if the prefab is an object of a scene and can be destroyed
+        private GameObject _listenedObject;                      // ... and has no script to ask for a token
 
         public T Prefab
         {
@@ -58,7 +61,43 @@ namespace SeweralIdeas.ObjectPooling
 
             InstanceName = _prefab.name + "(Pooled)";
             gameObject.SetActive(false);
+
+            // A prefab that is an object of a scene can be destroyed (an asset can't, short of being unloaded). The pool has
+            // nothing to make instances from then, so it goes too, with the instances waiting in it. The ones handed out
+            // carry on, and are destroyed instead of returned when they despawn.
+            // Only a script has a destroyCancellationToken: the prefab itself, or another one on its object. An object
+            // with none (a pooled Rigidbody, say) gets a listener component instead.
+            if(_prefab.gameObject.scene.IsValid())
+            {
+                var watched = _prefab as MonoBehaviour;
+                if(watched == null)
+                    _prefab.TryGetComponent(out watched);
+
+                if(watched != null)
+                {
+                    _prefabDestroyed = watched.destroyCancellationToken.Register(s_onPrefabDestroyed, this);
+                }
+                else
+                {
+                    _listenedObject = _prefab.gameObject;
+                    _listenedObject.SubscribeToDestroy(s_onPrefabDestroyed, this);
+                }
+            }
         }
+
+        protected void OnDestroy()
+        {
+            _prefabDestroyed.Dispose();
+            if(_listenedObject != null)
+                _listenedObject.UnsubscribeFromDestroy(s_onPrefabDestroyed, this);
+        }
+
+        private static readonly System.Action<object> s_onPrefabDestroyed = pool =>
+        {
+            var objectPool = (ObjectPool<T>)pool;
+            if(objectPool != null)
+                Destroy(objectPool.gameObject);
+        };
 
         /// <summary>
         /// Makes a new instance for the pool to hand out. It has to come back inactive and under the pool, so that

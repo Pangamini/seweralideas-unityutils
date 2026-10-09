@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using SeweralIdeas.UnityUtils;
 using UnityEngine;
 
@@ -163,6 +164,33 @@ namespace SeweralIdeas.ObjectPooling
 
             _despawnQueued = true;
             ObjectPoolManager.GetInstance(gameObject.scene).ReleaseAtEndOfFrame(this);
+        }
+
+        /// <summary>
+        /// Completes when the current (or, if the object hasn't been spawned yet, the coming) life ends, or when the object is
+        /// destroyed. Unlike awaiting the destruction of the object, it also works for a pooled one, which is not destroyed
+        /// but returned. Completes at once if the object is in its pool; throws OperationCanceledException if <paramref name="ct"/> is cancelled first.
+        /// </summary>
+        public async ValueTask AwaitDespawnAsync(CancellationToken ct = default)
+        {
+            if(!this || InPool)
+                return;
+
+            AwaitableCompletionSource ended = new();
+            Action<Spawnable> onDespawned = _ => ended.TrySetResult();
+            Despawned += onDespawned;
+            try
+            {
+                await using (ct.Register(() => ended.TrySetCanceled()))
+                await using (destroyCancellationToken.Register(() => ended.TrySetResult()))
+                {
+                    await ended.Awaitable;
+                }
+            }
+            finally
+            {
+                Despawned -= onDespawned;
+            }
         }
 
         void IDelayedRelease.ReleaseNow() => DespawnNow();
