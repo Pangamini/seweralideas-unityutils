@@ -19,7 +19,7 @@ namespace SeweralIdeas.UnityUtils.Editor
         private       string?               _promptText;
         private       bool                  _accepted   = false;
         private       Func<object, object>  _onFieldGui = null;
-        private       Func<object, bool>?   _validator;
+        private       Func<object, string?>? _validator;
         private       bool                  _focusNextFrame  = true;
         private       Action<bool, object>? _onComplete;
         private const string                FieldControlName = "ModalInputField";
@@ -29,7 +29,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             string? promptText,
             T? defaultValue,
             Func<T, T> fieldGui, out T value,
-            Func<T, bool>? validator = null,
+            Func<T, string?>? validator = null,
             Vector2 size = default
             )
         {
@@ -45,7 +45,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             string? promptText,
             T? defaultValue,
             Func<T, T> fieldGui,
-            Func<T, bool>? validator = null,
+            Func<T, string?>? validator = null,
             Vector2 size = default
             )
         {
@@ -61,7 +61,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             string promptText,
             T defaultValue,
             Func<T, T> fieldGui,
-            Func<T, bool> validator,
+            Func<T, string?> validator,
             Vector2 size
             )
         {
@@ -87,6 +87,15 @@ namespace SeweralIdeas.UnityUtils.Editor
 
         protected void OnGUI()
         {
+            // The window survives a domain reload but its delegates (and whoever awaited it) don't,
+            // so there is nothing left to prompt for.
+            if (_onFieldGui == null)
+            {
+                Close();
+                GUIUtility.ExitGUI();
+                return;
+            }
+
             // Handle keys for confirm / cancel
             var e = Event.current;
             if (e.type == EventType.KeyDown)
@@ -111,10 +120,14 @@ namespace SeweralIdeas.UnityUtils.Editor
             GUI.SetNextControlName(FieldControlName);
             _value = _onFieldGui(_value);
 
+            string? error = _validator?.Invoke(_value);
+            if (error != null)
+                EditorGUILayout.HelpBox(error, MessageType.Error);
+
             EditorGUILayout.Space();
             GUILayout.BeginHorizontal();
 
-            GUI.enabled = _validator == null || _validator(_value);
+            GUI.enabled = error == null;
             if (GUILayout.Button("OK"))
             {
                 TryAccept();
@@ -138,7 +151,7 @@ namespace SeweralIdeas.UnityUtils.Editor
 
         private bool TryAccept()
         {
-            if (_validator != null && !_validator(_value))
+            if (_validator?.Invoke(_value) != null)
                 return false;
 
             _accepted = true;
