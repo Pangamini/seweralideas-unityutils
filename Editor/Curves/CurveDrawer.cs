@@ -109,7 +109,9 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
                 
                 EditorGUI.indentLevel--;
                 
-                HandleUtility.Repaint();
+                // HandleUtility.Repaint only works inside an Editor's OnGUI; a drawer can also be called from the inspector window directly.
+                if(Event.current.type == EventType.Repaint)
+                    HandleUtility.Repaint();
             }
         }
         private static void DrawCurve(SerializedProperty property, CurveAttribute curveAttribute, Rect curveRect)
