@@ -68,15 +68,17 @@ namespace SeweralIdeas.ObjectPooling
 
         /// <summary>
         /// A token cancelled when the life ends (and when the object is destroyed), for async work that must not outlive
-        /// it. A new one for every life, made when first asked for, and disposed when the life ends. Throws if the object
-        /// isn't spawned.
+        /// it. A new one for every life, made when first asked for, and disposed when the life ends. Asked for before the
+        /// object is spawned, it is for the coming life, as <see cref="AwaitDespawnAsync"/> is. Once the life is over - the
+        /// object is in its pool, or destroyed - it is a token that is already cancelled, so it works the same whether the
+        /// object is pooled or not.
         /// </summary>
         public CancellationToken SpawnCancellationToken
         {
             get
             {
-                if(!_spawned)
-                    throw new InvalidOperationException("Cannot retrieve SpawnCancellationToken, not spawned.");
+                if(!this || InPool)
+                    return new CancellationToken(true);
                 _spawnCts ??= CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
                 return _spawnCts.Token;
             }
@@ -107,6 +109,8 @@ namespace SeweralIdeas.ObjectPooling
         {
             if(_spawned)
                 RunDespawn();
+            else
+                CancelSpawnToken(); // a token asked for before the spawn, for a life that never came
             OnDestroyed();
         }
         #endregion
@@ -191,6 +195,35 @@ namespace SeweralIdeas.ObjectPooling
             {
                 Despawned -= onDespawned;
             }
+        }
+
+        /// <summary>
+        /// The end of the target's life as a token: the <see cref="SpawnCancellationToken"/> of its Spawnable, or, if it has
+        /// none, its destroyCancellationToken. Already cancelled for a destroyed target. For a Spawnable that has not been
+        /// spawned yet it is the end of the coming life.
+        /// </summary>
+        public static CancellationToken GetLifeToken(MonoBehaviour target)
+        {
+            if(!target) // TryGetComponent would throw
+                return new CancellationToken(true);
+
+            return target.TryGetComponent(out Spawnable spawnable) ? spawnable.SpawnCancellationToken : target.destroyCancellationToken;
+        }
+
+        /// <summary>
+        /// Completes when the life of the target ends: <see cref="AwaitDespawnAsync"/> if it has a Spawnable (which also
+        /// waits for a coming life), otherwise when it is destroyed. Completes at once for a destroyed target; throws
+        /// OperationCanceledException if <paramref name="ct"/> is cancelled first.
+        /// </summary>
+        public static async ValueTask AwaitLifeEndAsync(MonoBehaviour target, CancellationToken ct = default)
+        {
+            if(!target)
+                return;
+
+            if(target.TryGetComponent(out Spawnable spawnable))
+                await spawnable.AwaitDespawnAsync(ct);
+            else
+                await target.AwaitDestructionAsync(ct);
         }
 
         void IDelayedRelease.ReleaseNow() => DespawnNow();
