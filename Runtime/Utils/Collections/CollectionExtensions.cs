@@ -305,6 +305,15 @@ namespace SeweralIdeas.Collections
                 target.Add(obj);
         }
 
+        /// <inheritdoc cref="AddSet{T}(List{T}, HashSet{T})"/>
+        public static void AddSet<T>(this List<T> target, ReadonlyObservableSet<T> set)
+        {
+            int count = set.Count;
+            target.EnsureCapacity(target.Count + count);
+            foreach (var obj in set)
+                target.Add(obj);
+        }
+
         /// <summary>
         /// Grows <paramref name="list"/>'s <see cref="List{T}.Capacity"/> to at least
         /// <paramref name="minCapacity"/> if it isn't already that large. Never shrinks capacity.
