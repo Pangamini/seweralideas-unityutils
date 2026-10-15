@@ -80,17 +80,28 @@ namespace SeweralIdeas.UnityUtils.Editor
             if (!PremultiplyAlphaTextureFlag.Get(importer))
                 return;
 
+            // The pixels are as they are stored: sRGB encoded for a color texture, while the alpha is always linear. The GPU
+            // decodes the color on sampling, so the multiplication has to be done on the linear color and the result encoded
+            // again. Multiplying the encoded values would leave the color at color * a^2.2 after the decode, too dark for
+            // every pixel that is not fully opaque.
+            bool srgb = importer.sRGBTexture;
+
             for (int mip = 0; mip < texture.mipmapCount; mip++)
             {
                 var pixels = texture.GetPixels(mip);
                 for (int i = 0; i < pixels.Length; i++)
                 {
                     var c = pixels[i];
-                    pixels[i] = new Color(c.r * c.a, c.g * c.a, c.b * c.a, c.a);
+                    pixels[i] = new Color(Premultiply(c.r, c.a, srgb), Premultiply(c.g, c.a, srgb), Premultiply(c.b, c.a, srgb), c.a);
                 }
                 texture.SetPixels(pixels, mip);
             }
             texture.Apply(updateMipmaps: false);
         }
+
+        private static float Premultiply(float channel, float alpha, bool srgb)
+            => srgb
+                ? Mathf.LinearToGammaSpace(Mathf.GammaToLinearSpace(channel) * alpha)
+                : channel * alpha;
     }
 }

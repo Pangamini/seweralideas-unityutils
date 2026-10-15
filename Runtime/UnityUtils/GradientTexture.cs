@@ -59,6 +59,10 @@ namespace SeweralIdeas.UnityUtils
         [Tooltip("Store the gradient values raw instead of as sRGB colors. Formats without sRGB support (float, half, ...) always behave as sRGB-equivalent unless this is on.")]
         [SerializeField] public bool linear = false;
         [SerializeField] public bool mipmaps = false;
+        [Tooltip("Generate every mip level from the gradient itself, instead of by filtering the level above. The border pixels " +
+                 "of every level then keep the exact end colors of the gradient (as Border Mip Maps of the texture importer does), " +
+                 "so a clamped texture does not bleed its inner colors into the ends at a distance.")]
+        [SerializeField] public bool preserveBorderColors = false;
         [SerializeField] public FilterMode filterMode = FilterMode.Bilinear;
         [SerializeField] public TextureWrapMode wrapMode = TextureWrapMode.Clamp;
         [SerializeField] public TextureWrapMode wrapMode2 = TextureWrapMode.Clamp;
@@ -184,6 +188,30 @@ namespace SeweralIdeas.UnityUtils
                 m_texture.Reinitialize(width, height, format, mipmaps);
             }
 
+            m_texture.SetPixels(GeneratePixels(width, height, wrapX, wrapY, srgb), 0);
+
+            if (mipmaps && preserveBorderColors)
+            {
+                // Evaluate the gradient at the resolution of every level, rather than letting Unity filter level 0 down: a filter
+                // averages the border pixels with the ones next to them, the gradient's own end colors stay exact.
+                int levels = m_texture.mipmapCount;
+                for (int level = 1; level < levels; ++level)
+                {
+                    int levelWidth = Mathf.Max(1, width >> level);
+                    int levelHeight = Mathf.Max(1, height >> level);
+                    m_texture.SetPixels(GeneratePixels(levelWidth, levelHeight, wrapX, wrapY, srgb), level);
+                }
+                m_texture.Apply(updateMipmaps: false);
+            }
+            else
+            {
+                m_texture.Apply();
+            }
+        }
+
+        /// <summary> The pixels of one mip level of the given size, as they are stored in the texture. </summary>
+        private Color[] GeneratePixels(int width, int height, TextureWrapMode wrapX, TextureWrapMode wrapY, bool srgb)
+        {
             var colors = new Color[width * height];
 
             if (is2D)
@@ -221,8 +249,7 @@ namespace SeweralIdeas.UnityUtils
                     colors[i] = colors[i].linear;
             }
 
-            m_texture.SetPixels(colors);
-            m_texture.Apply();
+            return colors;
         }
 
         /// <summary>
@@ -284,6 +311,7 @@ namespace SeweralIdeas.UnityUtils
             hash.Add(linear);
             hash.Add(QualitySettings.activeColorSpace);
             hash.Add(mipmaps);
+            hash.Add(preserveBorderColors);
             hash.Add(wrapMode);
             hash.Add(wrapMode2);
             AddGradient(ref hash, gradient);

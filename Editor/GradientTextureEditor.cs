@@ -44,7 +44,14 @@ namespace SeweralIdeas.UnityUtils.Editor
             EditorGUILayout.Space();
             DrawFormat(serializedObject.FindProperty(nameof(GradientTexture.format)));
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(GradientTexture.linear)));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(GradientTexture.mipmaps)));
+            var mipmaps = serializedObject.FindProperty(nameof(GradientTexture.mipmaps));
+            EditorGUILayout.PropertyField(mipmaps);
+            if (mipmaps.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(GradientTexture.preserveBorderColors)));
+                EditorGUI.indentLevel--;
+            }
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(GradientTexture.filterMode)));
 
             serializedObject.ApplyModifiedProperties();
