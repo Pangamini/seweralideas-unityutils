@@ -8,6 +8,7 @@ namespace SeweralIdeas.UnityUtils.Editor
     {
         private SerializedProperty _navigateA;
         private SerializedProperty _navigateB;
+        private SerializedProperty _inheritFrom;
 
         protected abstract string NavigateAPropertyName { get; }
         protected abstract string NavigateBPropertyName { get; }
@@ -17,6 +18,7 @@ namespace SeweralIdeas.UnityUtils.Editor
             base.OnEnable();
             _navigateA = serializedObject.FindProperty(NavigateAPropertyName);
             _navigateB = serializedObject.FindProperty(NavigateBPropertyName);
+            _inheritFrom = serializedObject.FindProperty("_inheritFrom");
         }
 
         public override void OnInspectorGUI()
@@ -24,6 +26,8 @@ namespace SeweralIdeas.UnityUtils.Editor
             base.OnInspectorGUI();
 
             serializedObject.Update();
+            // (With a selectable to inherit from, the two explicit ones are hidden by their [Condition])
+            EditorGUILayout.PropertyField(_inheritFrom);
             EditorGUILayout.PropertyField(_navigateA);
             EditorGUILayout.PropertyField(_navigateB);
             serializedObject.ApplyModifiedProperties();

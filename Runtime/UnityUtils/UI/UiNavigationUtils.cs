@@ -47,6 +47,21 @@ namespace SeweralIdeas.UnityUtils.UI
         };
     }
     
+    /// <summary>
+    /// Where a selectable leads in a direction, for a layout group to lead there too (see the layout groups with navigation). Null if it
+    /// leads nowhere, or leads back into the group (an element of it): that would be the elements leading to each other.
+    /// </summary>
+    internal static class InheritedNavigation
+    {
+        public static Selectable Up(Selectable source, Transform group) => Filter(source ? source.FindSelectableOnUp() : null, group);
+        public static Selectable Down(Selectable source, Transform group) => Filter(source ? source.FindSelectableOnDown() : null, group);
+        public static Selectable Left(Selectable source, Transform group) => Filter(source ? source.FindSelectableOnLeft() : null, group);
+        public static Selectable Right(Selectable source, Transform group) => Filter(source ? source.FindSelectableOnRight() : null, group);
+
+        private static Selectable Filter(Selectable target, Transform group)
+            => target && !target.transform.IsChildOf(group) ? target : null;
+    }
+
     public static class UiNavigationUtils
     {
         private static int Wrap(this int value, int length)
