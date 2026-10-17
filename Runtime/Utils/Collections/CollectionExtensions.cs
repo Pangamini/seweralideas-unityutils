@@ -27,11 +27,10 @@ namespace SeweralIdeas.Collections
 
         /// <summary>
         /// Shuffles <paramref name="list"/> in place using the Fisher-Yates algorithm and
-        /// <see cref="UnityEngine.Random"/>. Generic over the concrete list type (rather than
-        /// taking a plain <see cref="IList{T}"/>) so indexer access can be specialized instead of
-        /// going through an interface call on every swap.
+        /// <see cref="UnityEngine.Random"/>. Takes a plain <see cref="IList{T}"/>; a version
+        /// generic over the concrete list type failed to compile under IL2CPP.
         /// </summary>
-        public static void Shuffle<T, TList>(this TList list) where TList : IList<T>
+        public static void Shuffle<T>(this IList<T> list)
         {
             int count = list.Count;
 
@@ -65,7 +64,7 @@ namespace SeweralIdeas.Collections
         }
 
         /// <inheritdoc cref="PartialShuffle{T}(Span{T}, int)"/>
-        public static void PartialShuffle<T, TList>(this TList list, int n) where TList : IList<T>
+        public static void PartialShuffle<T>(this IList<T> list, int n)
         {
             int count = list.Count;
             if (n < 0 || n > count)
@@ -95,7 +94,7 @@ namespace SeweralIdeas.Collections
         }
 
         /// <inheritdoc cref="Shuffle{T}(Span{T}, Random)"/>
-        public static void Shuffle<T, TList>(this TList list, Random rng) where TList : IList<T>
+        public static void Shuffle<T>(this IList<T> list, Random rng)
         {
             int count = list.Count;
 
@@ -125,7 +124,7 @@ namespace SeweralIdeas.Collections
         }
 
         /// <inheritdoc cref="PartialShuffle{T}(Span{T}, int, Random)"/>
-        public static void PartialShuffle<T, TList>(this TList list, int n, Random rng) where TList : IList<T>
+        public static void PartialShuffle<T>(this IList<T> list, int n, Random rng)
         {
             int count = list.Count;
             if (n < 0 || n > count)
