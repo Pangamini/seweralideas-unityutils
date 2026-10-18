@@ -8,13 +8,17 @@ namespace SeweralIdeas.ObjectPooling
     /// A part of a <see cref="Spawnable"/> object: it is spawned and despawned by its root, the nearest
     /// <see cref="Spawnable"/> at or above it, and not by being enabled or disabled. The root spawns first and despawns
     /// last. A part that wakes up after its root has been spawned is spawned right after its Awake.
+    ///
+    /// A part without a <see cref="Spawnable"/> above it is its own root: it is spawned on its first Start, as a
+    /// Spawnable that nobody spawned is, and despawned when it is destroyed.
     /// </summary>
     public abstract class SpawnablePart : MonoBehaviour
     {
         private Spawnable? _root;
         private bool       _spawned;
 
-        public Spawnable Root => _root!;
+        /// <summary>The nearest <see cref="Spawnable"/> at or above the part, or null if there is none and the part spawns itself.</summary>
+        public Spawnable? Root => _root;
 
         /// <summary>Whether the part is spawned, i.e. its root is and it has been told so.</summary>
         public bool Spawned => _spawned;
@@ -22,14 +26,16 @@ namespace SeweralIdeas.ObjectPooling
         protected void Awake()
         {
             _root = GetComponentInParent<Spawnable>(true);
-            if(_root == null)
-            {
-                Debug.LogError($"{name}: {GetType().Name} is a part of a Spawnable, and there is none on this object or above it.", this);
-                return;
-            }
 
             OnAwake();
-            _root.RegisterPart(this);
+            _root?.RegisterPart(this);
+        }
+
+        protected void Start()
+        {
+            // No root to spawn it: the first Start begins its life.
+            if(_root == null)
+                RunSpawn();
         }
 
         protected void OnDestroy()
