@@ -5,12 +5,10 @@ using UnityEngine.Events;
 
 namespace SeweralIdeas.Tweening
 {
-    [DefaultExecutionOrder(ExecOrder)]
-    [DisallowMultipleComponent]
-    public class Tween : MonoBehaviour
+    [DefaultExecutionOrder(TweenBase.ExecOrder)]
+    public class Tween : TweenBase
     {
-        public const int   ExecOrder = 0;
-        private      float m_progress;
+        private float m_progress;
 
         [SerializeField] 
         private bool m_isOn;
@@ -29,9 +27,6 @@ namespace SeweralIdeas.Tweening
         private AnimationCurve m_curve = AnimationCurve.EaseInOut(0,0,1,1);
         
         [SerializeField]
-        private UnityEvent<float> m_onValueChanged = new();
-        
-        [SerializeField]
         private UnityEvent<bool> m_onTargetValueChanged = new();
         
         private float m_velocity;
@@ -48,13 +43,7 @@ namespace SeweralIdeas.Tweening
             Curve
         }
         
-        public event UnityAction<float> ValueChanged
-        {
-            add => m_onValueChanged.AddListener(value);
-            remove => m_onValueChanged.RemoveListener(value);
-        }
-
-        public float Progress => m_progress;
+        public override float Progress => m_progress;
 
         public void SetProgress(float newProgress)
         {
@@ -85,7 +74,7 @@ namespace SeweralIdeas.Tweening
             InitializeProgress();
         }
 
-        public void EnsureInitialized()
+        public override void EnsureInitialized()
         {
             InitializeProgress();
         }
@@ -138,7 +127,7 @@ namespace SeweralIdeas.Tweening
                 Mode.Simple => m_progress,
                 _ => throw new ArgumentOutOfRangeException()
             };
-            m_onValueChanged?.Invoke(value);
+            NotifyValueChanged(value);
         }
     }
 }

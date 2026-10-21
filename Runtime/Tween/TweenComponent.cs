@@ -5,31 +5,31 @@ using UnityEngine;
 
 namespace SeweralIdeas.Tweening
 {
-    [RequireComponent(typeof(Tween))]
-    [DefaultExecutionOrder(Tween.ExecOrder - 1)]
+    [RequireComponent(typeof(TweenBase))]
+    [DefaultExecutionOrder(TweenBase.ExecOrder - 1)]
     public abstract class TweenComponent : MonoBehaviour
     {
-        public Tween Tween { get; private set; }
+        public TweenBase Source { get; private set; }
 
         protected virtual void Awake()
         {
-            Tween = GetComponent<Tween>();
+            Source = GetComponent<TweenBase>();
         }
-        
+
         protected virtual void Start()
         {
-            Tween.ValueChanged += OnValueChanged;
-            OnValueChanged(Tween.Progress);
+            Source.ValueChanged += OnValueChanged;
+            OnValueChanged(Source.Progress);
         }
 
         protected virtual void OnDestroy()
         {
-            if(Tween == null)
-                Debug.LogError($"{this} Tween is null", this);
-            Tween.ValueChanged -= OnValueChanged;
-            Tween = null;
+            if(Source == null)
+                Debug.LogError($"{this} Source is null", this);
+            Source.ValueChanged -= OnValueChanged;
+            Source = null;
         }
-        
+
         protected virtual void OnValueChanged(float progress) { }
     }
 }
