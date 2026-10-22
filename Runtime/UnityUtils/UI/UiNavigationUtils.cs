@@ -87,6 +87,9 @@ namespace SeweralIdeas.UnityUtils.UI
 
                     if(!selectable.gameObject.activeInHierarchy)
                         continue;
+                    
+                    if(!selectable.IsInteractable())
+                        continue;
 
                     selectables.Add(selectable);
                 }
