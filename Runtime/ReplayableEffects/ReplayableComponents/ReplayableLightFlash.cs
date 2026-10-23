@@ -5,7 +5,7 @@ using UnityEngine.Serialization;
 
 namespace SeweralIdeas.ReplayableEffects
 {
-    [AddComponentMenu("SeweralIdeas/ReplayableEffects/LightFlash")]
+    [AddComponentMenu("SeweralIdeas/ReplayableEffects/ReplayableLightFlash")]
     [RequireComponent(typeof(Light))]
     [DisallowMultipleComponent]
     public class ReplayableLightFlash : EffectComponent
