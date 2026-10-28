@@ -88,11 +88,11 @@ namespace SeweralIdeas.UnityUtils.Editor
     {
         private DateTime _startTime;
         
-        [MenuItem("Framework/"+nameof(TestProgressWindow))]
-        public static void TestProgressWindow()
-        {
-            Init<ProgressDemo>(nameof(TestProgressWindow), new Vector2(300,50), w => w._startTime = DateTime.Now);
-        }
+        // [MenuItem("Framework/"+nameof(TestProgressWindow))]
+        // public static void TestProgressWindow()
+        // {
+        //     Init<ProgressDemo>(nameof(TestProgressWindow), new Vector2(300,50), w => w._startTime = DateTime.Now);
+        // }
         
         protected override bool MoveNext(out (float, string) progress)
         {
