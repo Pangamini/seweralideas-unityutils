@@ -13,11 +13,16 @@ namespace SeweralIdeas.UnityUtils.Markdown
     /// ~~strikethrough~~, `inline code`, [links](url), nested bullet and numbered lists, &gt; quotes and horizontal rules.
     /// Fenced code blocks are shown as they are. Images become their alt text. Tables, footnotes and HTML are not
     /// handled: they show up as the text they are made of. Every literal "&lt;" is escaped, so the text can never be
-    /// read as a TMP tag.
+    /// read as a TMP tag - unless <c>keepTags</c> is on, for a text that is meant to have some.
     /// </summary>
     public static class MarkdownToTmp
     {
-        public static string Convert(string markdown, MarkdownStyleSet styles)
+        /// <param name="keepTags">Leaves the TMP rich text tags that are in the text (<c>&lt;b&gt;</c>, <c>&lt;style=Name&gt;</c>,
+        /// <c>&lt;sprite ...&gt;</c>, everything in <c>&lt;noparse&gt;</c>) as they are, instead of escaping them. Use it only for text
+        /// that is trusted to have them: tags made by code, say. They are not part of the Markdown, so a line that starts with one is
+        /// not read as a heading or a list item, and an emphasis next to one may not be recognised. Autolinks (<c>&lt;https://...&gt;</c>)
+        /// are still links.</param>
+        public static string Convert(string markdown, MarkdownStyleSet styles, bool keepTags = false)
         {
             if (styles == null)
                 throw new ArgumentNullException(nameof(styles));
@@ -25,8 +30,33 @@ namespace SeweralIdeas.UnityUtils.Markdown
                 return string.Empty;
 
             string normalized = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
-            return new Converter(styles).ConvertBlocks(normalized.Split('\n'));
+
+            List<string> tags = null;
+            if (keepTags)
+            {
+                tags = new List<string>();
+                normalized = RichTextTag.Replace(normalized, m =>
+                {
+                    tags.Add(m.Value);
+                    return $"{TagStart}{tags.Count - 1}{TagEnd}";
+                });
+            }
+
+            string result = new Converter(styles).ConvertBlocks(normalized.Split('\n'));
+            return tags == null || tags.Count == 0
+                ? result
+                : TagPlaceholder.Replace(result, m => tags[int.Parse(m.Groups[1].Value)]);
         }
+
+        // While the tags are kept, each is a placeholder of private use characters, which are text to the Markdown.
+        private const char TagStart = '';
+        private const char TagEnd   = '';
+
+        private static readonly Regex RichTextTag = new(
+            @"<noparse>.*?</noparse>|<(?![A-Za-z][A-Za-z0-9+.\-]{1,31}:[^\s<>]*>)/?[A-Za-z][^<>]*>",
+            RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+        private static readonly Regex TagPlaceholder = new(@"(\d+)", RegexOptions.CultureInvariant);
 
         // ----- Patterns -----
 

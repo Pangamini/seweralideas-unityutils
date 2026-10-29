@@ -1,0 +1,26 @@
+{
+    "name": "SeweralIdeas.LocalizationExtensions",
+    "rootNamespace": "SeweralIdeas.LocalizationExtensions",
+    "references": [
+        "SeweralIdeas.Config",
+        "Unity.Localization",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "SEWERALIDEAS_LOCALIZATIONEXTENSIONS"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.localization",
+            "expression": "1.0.0",
+            "define": "SEWERALIDEAS_LOCALIZATIONEXTENSIONS"
+        }
+    ],
+    "noEngineReferences": false
+}
