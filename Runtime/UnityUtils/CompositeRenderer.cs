@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using SeweralIdeas.UnityUtils.Drawers;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -117,36 +118,81 @@ namespace SeweralIdeas.UnityUtils
             }
         }
 
+        /// <summary>
+        /// Adds a material to the renderers, as a layer: after the materials the renderer had, and in the order of
+        /// <see cref="Priority"/> among the layers added by other methods (a lower priority first; layers of the same priority
+        /// in the order they were added). Materials are drawn in the order of the renderer's list, so a layer is drawn after
+        /// the layers with a lower priority, whenever they are added. Layers can be added and removed in any order.
+        /// </summary>
         public class AddMaterialMethod : IRenderMethod
         {
-            public AddMaterialMethod(Material material)
+            public AddMaterialMethod(Material material, int priority = 0)
             {
                 Material = material;
+                Priority = priority;
             }
-            
+
             public Material Material { get; private set; }
-            
-            void IRenderMethod.EnableOnRenderer(Renderer rend) => AddMaterial(rend);
-            void IRenderMethod.DisableOnRenderer(Renderer rend) => RemoveMaterial(rend);
-            
-            private void AddMaterial(Renderer renderer)
+            public int Priority { get; private set; }
+
+            // The layers on each renderer, in the order of the list they make at its end. Kept apart from the renderer, so that
+            // its own materials stay what they were, whatever the layers are.
+            private static readonly ConditionalWeakTable<Renderer, List<AddMaterialMethod>> s_layers = new();
+
+            void IRenderMethod.EnableOnRenderer(Renderer rend) => AddLayer(rend);
+            void IRenderMethod.DisableOnRenderer(Renderer rend) => RemoveLayer(rend);
+
+            private void AddLayer(Renderer renderer)
             {
+                var layers = s_layers.GetOrCreateValue(renderer);
                 using (ListPool<Material>.Get(out var materials))
                 {
                     renderer.GetSharedMaterials(materials);
-                    materials.Add(Material);
-                    renderer.sharedMaterials = materials.ToArray(); // is ths a joke? No renderer.SetSharedMaterials(List<>) ?
+                    TakeLayersOff(materials, layers);
+
+                    int index = layers.Count; // after the last layer that has a priority not greater than ours
+                    while (index > 0 && layers[index - 1].Priority > Priority)
+                        --index;
+                    layers.Insert(index, this);
+
+                    PutLayersOn(renderer, materials, layers);
                 }
             }
-        
-            private void RemoveMaterial(Renderer renderer)
+
+            private void RemoveLayer(Renderer renderer)
             {
+                if (renderer == null || !s_layers.TryGetValue(renderer, out var layers)) // (a destroyed one has nothing to take off)
+                    return;
+
                 using (ListPool<Material>.Get(out var materials))
                 {
                     renderer.GetSharedMaterials(materials);
-                    materials.Remove(Material);
-                    renderer.sharedMaterials = materials.ToArray(); // is ths a joke? No renderer.SetSharedMaterials(List<>) ?
+                    TakeLayersOff(materials, layers);
+
+                    if (!layers.Remove(this))
+                        return;
+
+                    PutLayersOn(renderer, materials, layers);
                 }
+            }
+
+            // What is left is the materials the renderer had. The layers are at the end, but are looked for from there instead
+            // of cut off, as the renderer's materials may also have been set by someone else since.
+            private static void TakeLayersOff(List<Material> materials, List<AddMaterialMethod> layers)
+            {
+                for (int i = layers.Count - 1; i >= 0; --i)
+                {
+                    int index = materials.LastIndexOf(layers[i].Material);
+                    if (index >= 0)
+                        materials.RemoveAt(index);
+                }
+            }
+
+            private static void PutLayersOn(Renderer renderer, List<Material> materials, List<AddMaterialMethod> layers)
+            {
+                foreach (var layer in layers)
+                    materials.Add(layer.Material);
+                renderer.sharedMaterials = materials.ToArray(); // is ths a joke? No renderer.SetSharedMaterials(List<>) ?
             }
         }
 
