@@ -39,11 +39,14 @@ namespace SeweralIdeas.UnityUtils
                 gameObject.GetComponentsInChildrenRecursively<TChild, TParent>(children);
                 foreach (var child in children)
                 {
+                    if(child.ParentOverride.HasValue) // it has chosen its parent, which is not found by looking
+                        continue;
+
                     child.SetParent(thisAsParent);
                 }
             }
         }
-        
+
         protected virtual void OnDestroy()
         {
             using (ListPool<ChildComponent<TParent, TChild>>.Get(out var children))
@@ -65,41 +68,91 @@ namespace SeweralIdeas.UnityUtils
         where TParent : ParentComponent<TParent, TChild>
         where TChild : ChildComponent<TParent, TChild>
     {
+        [Tooltip("Off: the parent is the nearest one above in the hierarchy. On: this parent, which can be none (empty), wherever it is.")]
+        [SerializeField] private Override<TParent> _parentOverride;
+
         private readonly Observable<TParent> _parent = new();
+        private bool _awake;
+
         public Observable<TParent>.Readonly Parent => _parent.ReadOnly;
+
+        /// <summary>
+        /// Chooses the parent instead of finding it in the hierarchy. An override with no value (the default) leaves it to the
+        /// hierarchy; one with a null value is explicitly no parent at all, and so is one whose parent is destroyed
+        /// (it does not fall back to the hierarchy). A parent assigned (<c>child.ParentOverride = parent</c>) is an enabled override.
+        /// Takes effect at once, and also when changed in the Inspector while playing.
+        /// </summary>
+        public Override<TParent> ParentOverride
+        {
+            get => _parentOverride;
+            set
+            {
+                _parentOverride = value;
+                if(Application.isPlaying && this) // not in the editor, and not once destroyed
+                    FindNewParent();
+            }
+        }
+
+        /// <summary>
+        /// The parent, or null if there is none. Unlike <see cref="Parent"/> it is found on the spot if this has not woken up yet,
+        /// so other components can use it from their Awake regardless of execution order.
+        /// </summary>
+        public TParent ResolveParent()
+        {
+            if(!_awake && Application.isPlaying)
+                FindNewParent();
+            return _parent.Value;
+        }
 
         protected internal void SetParent(TParent newParent)
         {
             if(_parent.Value == newParent)
                 return;
-            
+
             if(_parent.Value)
                 _parent.Value.UnregisterChild((TChild)this);
-            
+
             _parent.Value = newParent;
-                
+
             if(_parent.Value)
                 _parent.Value.RegisterChild((TChild)this);
         }
-        
+
         protected virtual void Awake()
         {
+            _awake = true;
             if(_parent.Value == null)
                 FindNewParent();
         }
 
         protected virtual void OnDestroy()
         {
+            _awake = false;
             SetParent( null );
         }
-        
+
+        // Called by the editor when a field is changed in the Inspector (and when loaded). While playing, that is how a change of
+        // the override by serialization gets here; before Awake it is left to Awake.
+        protected virtual void OnValidate()
+        {
+            if(_awake && Application.isPlaying)
+                FindNewParent();
+        }
+
         protected void OnTransformParentChanged()
         {
             FindNewParent();
         }
-        
+
         internal void FindNewParent()
         {
+            if(_parentOverride.HasValue)
+            {
+                TParent chosen = _parentOverride.Value;
+                SetParent(chosen ? chosen : null); // a destroyed parent is no parent
+                return;
+            }
+
             using (ListPool<TParent>.Get(out var parents))
             {
                 var transf = transform;
