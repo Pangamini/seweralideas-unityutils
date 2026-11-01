@@ -32,6 +32,13 @@ namespace SeweralIdeas.Utils
             return _enabled;
         }
 
+        /// <summary>Enables positional patterns: <c>o is (true, var v)</c>. The value is meaningless when there is no override, like in <see cref="TryGetValue"/>.</summary>
+        public void Deconstruct(out bool hasValue, out T value)
+        {
+            hasValue = _enabled;
+            value = _value;
+        }
+
         /// <summary>The override if there is one, otherwise the fallback.</summary>
         public T ValueOr(T fallback) => _enabled ? _value : fallback;
 

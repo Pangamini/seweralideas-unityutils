@@ -16,7 +16,11 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             return EditorGUI.GetPropertyHeight(valueProp, label, true);
         }
 
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) =>
+            Draw(position, property, label, (rect, valueProp) => EditorGUI.PropertyField(rect, valueProp, GUIContent.none, true));
+
+        /// <summary>Draws the override toggle and label, and the value with <paramref name="drawValue"/> (given the rect and the value property).</summary>
+        public static void Draw(Rect position, SerializedProperty property, GUIContent label, System.Action<Rect, SerializedProperty> drawValue)
         {
             SerializedProperty enabledProp = property.FindPropertyRelative("_enabled");
             SerializedProperty valueProp = property.FindPropertyRelative("_value");
@@ -37,7 +41,7 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
             EditorGUI.indentLevel = indent;
 
             using (new EditorGUI.DisabledScope(!enabledProp.boolValue))
-                EditorGUI.PropertyField(valueRect, valueProp, GUIContent.none, true);
+                drawValue(valueRect, valueProp);
 
             EditorGUI.EndProperty();
         }
