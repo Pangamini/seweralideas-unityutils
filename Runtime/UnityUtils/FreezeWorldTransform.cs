@@ -11,7 +11,7 @@ namespace Rockwell.Framework
         
         [SerializeField]
         [OverrideValue]
-        private Override<Quaternion> _rotation;
+        private Override<Quaternion> _rotation = Quaternion.identity;
         
         void LateUpdate()
         {
