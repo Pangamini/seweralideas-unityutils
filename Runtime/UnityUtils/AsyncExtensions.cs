@@ -44,6 +44,25 @@ namespace SeweralIdeas.UnityUtils
                 Debug.LogException(e);
             }
         }
+        
+        /// <summary>
+        /// Wraps the valuetask in try/catch with UnityEngine.Debug.LogException
+        /// </summary>
+        /// <param name="task"></param>
+        public async static void ForgetSafe(this Awaitable task)
+        {
+            try
+            {
+                await task;
+            }
+            catch( OperationCanceledException )
+            {
+            }
+            catch( Exception e )
+            {
+                Debug.LogException(e);
+            }
+        }
 
         /// <summary>
         /// Awaits the task, but throws OperationCanceledException if the token is canceled first.
