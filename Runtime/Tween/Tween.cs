@@ -20,6 +20,10 @@ namespace SeweralIdeas.Tweening
         private float m_smoothTime = 0.1f;
         
         [SerializeField]
+        [Condition(nameof(IsSmooth))]
+        private float m_maxSpeed = float.PositiveInfinity;
+        
+        [SerializeField]
         private bool m_useUnscaledTime;
         
         [SerializeField]
@@ -33,6 +37,7 @@ namespace SeweralIdeas.Tweening
         private bool  m_awoken;
 
         private bool IsCurve => m_mode == Mode.Curve;
+        private bool IsSmooth => m_mode is Mode.SmoothDamp or Mode.SmoothDampOvershoot;
 
         public void Toggle() => IsOn = !IsOn;
         
@@ -40,7 +45,8 @@ namespace SeweralIdeas.Tweening
         {
             Simple,
             SmoothDamp,
-            Curve
+            Curve,
+            SmoothDampOvershoot
         }
         
         public override float Progress => m_progress;
@@ -49,6 +55,12 @@ namespace SeweralIdeas.Tweening
         {
             m_progress = Mathf.Clamp01(newProgress);
             enabled = true;
+        }
+
+        public void SetImmediate(bool isOn)
+        {
+            m_progress = isOn ? 1 : 0;
+            IsOn = isOn;
         }
 
         protected void OnValidate() => enabled = true;
@@ -105,17 +117,37 @@ namespace SeweralIdeas.Tweening
                     break;
                 
                 case Mode.SmoothDamp:
-                    m_progress = Mathf.SmoothDamp(m_progress, target, ref m_velocity, m_smoothTime, float.PositiveInfinity, deltaTime);
+                    m_progress = Mathf.SmoothDamp(m_progress, target, ref m_velocity, m_smoothTime, m_maxSpeed, deltaTime);
+                    break;
+
+                case Mode.SmoothDampOvershoot:
+                    m_progress = SmoothDampUnguarded(m_progress, target, ref m_velocity, m_smoothTime, m_maxSpeed, deltaTime);
                     break;
             }
-            
-            if(Math.Abs(m_progress - target) < 0.0001f)
+
+            if(Math.Abs(m_progress - target) < 0.0001f && Math.Abs(m_velocity) < 0.0001f)
             {
                 m_progress = target;
+                m_velocity = 0;
                 enabled = false;
             }
 
             ApplyValue();
+        }
+
+        /// <summary><see cref="Mathf.SmoothDamp(float,float,ref float,float,float,float)"/> without the clause that prevents overshooting the target.</summary>
+        public static float SmoothDampUnguarded(float current, float target, ref float velocity, float smoothTime, float maxSpeed, float deltaTime)
+        {
+            smoothTime = Mathf.Max(0.0001f, smoothTime);
+            float omega = 2f / smoothTime;
+            float x = omega * deltaTime;
+            float exp = 1f / (1f + x + 0.48f * x * x + 0.235f * x * x * x);
+            float maxChange = maxSpeed * smoothTime;
+            float change = Mathf.Clamp(current - target, -maxChange, maxChange);
+            target = current - change;
+            float temp = (velocity + omega * change) * deltaTime;
+            velocity = (velocity - omega * temp) * exp;
+            return target + (change + temp) * exp;
         }
         
         private void ApplyValue()
@@ -124,6 +156,7 @@ namespace SeweralIdeas.Tweening
             {
                 Mode.Curve => m_curve.Evaluate(m_progress),
                 Mode.SmoothDamp => m_progress,
+                Mode.SmoothDampOvershoot => m_progress,
                 Mode.Simple => m_progress,
                 _ => throw new ArgumentOutOfRangeException()
             };
