@@ -1,0 +1,18 @@
+{
+    "name": "SeweralIdeas.Tweening.Editor",
+    "rootNamespace": "SeweralIdeas.Tweening.Editor",
+    "references": [
+        "GUID:dc4bd272371f8124991a026f8102c0af"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -2,6 +2,7 @@ using System;
 using SeweralIdeas.UnityUtils.Drawers;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Serialization;
 
 namespace SeweralIdeas.Tweening
 {
@@ -17,7 +18,8 @@ namespace SeweralIdeas.Tweening
         private Mode m_mode;
         
         [SerializeField]
-        private float m_smoothTime = 0.1f;
+        [FormerlySerializedAs("m_smoothTime")]
+        private float m_duration = 0.1f;
         
         [SerializeField]
         [Condition(nameof(IsSmooth))]
@@ -36,8 +38,7 @@ namespace SeweralIdeas.Tweening
         private float m_velocity;
         private bool  m_awoken;
 
-        private bool IsCurve => m_mode == Mode.Curve;
-        private bool IsSmooth => m_mode is Mode.SmoothDamp or Mode.SmoothDampOvershoot;
+        private bool IsCurve => m_mode == Mode.Curve;        private bool IsSmooth => m_mode is Mode.SmoothDamp or Mode.SmoothDampOvershoot or Mode.LinearRamp;
 
         public void Toggle() => IsOn = !IsOn;
         
@@ -46,7 +47,12 @@ namespace SeweralIdeas.Tweening
             Simple,
             SmoothDamp,
             Curve,
-            SmoothDampOvershoot
+            SmoothDampOvershoot,
+            /// <summary>
+            /// Constant speed with linear ease-in/out ramps (trapezoid speed profile). A full 0..1 move takes exactly the smooth time.
+            /// Reversing mid-move decelerates through zero first, so it overshoots.
+            /// </summary>
+            LinearRamp
         }
         
         public override float Progress => m_progress;
@@ -109,21 +115,7 @@ namespace SeweralIdeas.Tweening
             float target = IsOn ? 1 : 0;
 
             float deltaTime = m_useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
-            switch (m_mode)
-            {
-                case Mode.Simple:
-                case Mode.Curve:
-                    m_progress = Mathf.MoveTowards(m_progress, target, (1f / m_smoothTime)*deltaTime);
-                    break;
-                
-                case Mode.SmoothDamp:
-                    m_progress = Mathf.SmoothDamp(m_progress, target, ref m_velocity, m_smoothTime, m_maxSpeed, deltaTime);
-                    break;
-
-                case Mode.SmoothDampOvershoot:
-                    m_progress = SmoothDampUnguarded(m_progress, target, ref m_velocity, m_smoothTime, m_maxSpeed, deltaTime);
-                    break;
-            }
+            m_progress = Step(m_mode, m_progress, target, ref m_velocity, m_duration, m_maxSpeed, deltaTime);
 
             if(Math.Abs(m_progress - target) < 0.0001f && Math.Abs(m_velocity) < 0.0001f)
             {
@@ -150,17 +142,67 @@ namespace SeweralIdeas.Tweening
             return target + (change + temp) * exp;
         }
         
-        private void ApplyValue()
+        /// <summary>
+        /// Moves toward the target with a trapezoid speed profile. <paramref name="duration"/> is the time of a full 1-unit move from rest;
+        /// <paramref name="maxSpeed"/> caps the cruising speed; the acceleration is derived so the move still takes <paramref name="duration"/>.
+        /// With no cap the profile is a triangle (half the time speeding up, half slowing down).
+        /// Speed always changes at the same constant rate, so moving away from the target first brakes to zero, overshooting the new target.
+        /// </summary>
+        public static float LinearRampStep(float current, float target, ref float velocity, float duration, float maxSpeed, float deltaTime)
         {
-            float value = m_mode switch
+            duration = Mathf.Max(0.0001f, duration);
+            // Below 1/duration the move can't finish in time; just above it the ramps become near-instant (constant speed).
+            float minSpeed = 1.001f / duration;
+            maxSpeed = Mathf.Clamp(maxSpeed, minSpeed, 2f / duration);   // 2/duration is the triangle's peak: a higher cap is never reached
+            // duration = 1/maxSpeed (cruise-equivalent) + maxSpeed/accel (ramps)
+            float accel = maxSpeed / (duration - 1f / maxSpeed);
+
+            float distance = target - current;
+            // fastest speed from which we can still brake to a stop on the target
+            float desired = Mathf.Sign(distance) * Mathf.Min(maxSpeed, Mathf.Sqrt(2f * accel * Mathf.Abs(distance)));
+            velocity = Mathf.MoveTowards(velocity, desired, accel * deltaTime);
+
+            float next = current + velocity * deltaTime;
+
+            // arriving: this step reaches or crosses the target while heading for it. Settle there, otherwise the last
+            // discrete step lands slightly past it and the speed swings through zero. (Moving away from it never matches.)
+            if(velocity * distance >= 0f && (target - next) * distance <= 0f)
             {
-                Mode.Curve => m_curve.Evaluate(m_progress),
-                Mode.SmoothDamp => m_progress,
-                Mode.SmoothDampOvershoot => m_progress,
-                Mode.Simple => m_progress,
-                _ => throw new ArgumentOutOfRangeException()
-            };
-            NotifyValueChanged(value);
+                velocity = 0f;
+                return target;
+            }
+            return next;
         }
+
+        /// <summary>One frame of progress toward <paramref name="target"/> in the given mode. Public so editor previews run the exact same code.</summary>
+        public static float Step(Mode mode, float current, float target, ref float velocity, float duration, float maxSpeed, float deltaTime)
+        {
+            switch (mode)
+            {
+                case Mode.Simple:
+                case Mode.Curve:
+                    return Mathf.MoveTowards(current, target, (1f / duration) * deltaTime);
+
+                case Mode.SmoothDamp:
+                    return Mathf.SmoothDamp(current, target, ref velocity, duration, maxSpeed, deltaTime);
+
+                case Mode.SmoothDampOvershoot:
+                    return SmoothDampUnguarded(current, target, ref velocity, duration, maxSpeed, deltaTime);
+
+                case Mode.LinearRamp:
+                    return LinearRampStep(current, target, ref velocity, duration, maxSpeed, deltaTime);
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+        }
+
+        /// <summary>The value that listeners receive for a given progress.</summary>
+        public static float MapProgress(Mode mode, AnimationCurve curve, float progress)
+        {
+            return mode == Mode.Curve ? curve.Evaluate(progress) : progress;
+        }
+
+        private void ApplyValue() => NotifyValueChanged(MapProgress(m_mode, m_curve, m_progress));
     }
 }
