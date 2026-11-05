@@ -124,5 +124,19 @@ namespace SeweralIdeas.UnityUtils
                 await destroyed.Awaitable;
             }
         }
+        
+        public static void Then(this Awaitable awaitable, Action action)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+            ThenAsync(awaitable, action).ForgetSafe();
+            
+            async static Awaitable ThenAsync(Awaitable when, Action what)
+            {
+                await when;
+                what();
+            }
+        }
+
     }
 }

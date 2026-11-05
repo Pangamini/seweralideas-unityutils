@@ -19,6 +19,7 @@ namespace SeweralIdeas.Utils
         public static implicit operator (TKey, TVal)(Pair<TKey, TVal> obj) => (obj.Key, obj.Value);
         public static implicit operator KeyValuePair<TKey, TVal>(Pair<TKey, TVal> obj) => new (obj.Key, obj.Value);
         
+        public void Deconstruct(out TKey key, out TVal value) { key = Key; value = Value; }
         public bool Equals(Pair<TKey, TVal> other) => EqualityComparer<TKey>.Default.Equals(Key, other.Key) && EqualityComparer<TVal>.Default.Equals(Value, other.Value);
         public override bool Equals(object? obj) => obj is Pair<TKey, TVal> other && Equals(other);
         public override int GetHashCode() => HashCode.Combine(Key, Value);
