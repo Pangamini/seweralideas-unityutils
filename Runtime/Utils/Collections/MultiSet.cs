@@ -157,6 +157,29 @@ namespace SeweralIdeas.Collections
             return 0;
         }
 
+        /// <summary>Calls the visitor for each element, on a snapshot: it may change the set.</summary>
+        public void VisitAll(Action<T> visitor)
+        {
+            foreach(T obj in this.GetReadonly().Snapshot())
+                visitor(obj);
+        }
+
+        /// <summary>Subscribes, and calls <paramref name="onAdded"/> for the elements that are in already.</summary>
+        public void SubscribeAndEnumerate(Action<T> onAdded, Action<T> onRemoved)
+        {
+            Added += onAdded;
+            Removed += onRemoved;
+            VisitAll(onAdded);
+        }
+
+        /// <summary>Calls <paramref name="onRemoved"/> for the elements that are in still, and unsubscribes.</summary>
+        public void UnsubscribeAndEnumerate(Action<T> onAdded, Action<T> onRemoved)
+        {
+            VisitAll(onRemoved);
+            Added -= onAdded;
+            Removed -= onRemoved;
+        }
+
     }
 
     public readonly struct ReadonlyMultiSet<T> : IEnumerable<T>, IReadonlyObservableSet<T>
@@ -195,6 +218,12 @@ namespace SeweralIdeas.Collections
         }
 
         public Dictionary<T, uint>.KeyCollection.Enumerator GetEnumerator() => m_set.GetEnumerator();
+
+        public void VisitAll(Action<T> visitor) => m_set.VisitAll(visitor);
+
+        public void SubscribeAndEnumerate(Action<T> onAdded, Action<T> onRemoved) => m_set.SubscribeAndEnumerate(onAdded, onRemoved);
+
+        public void UnsubscribeAndEnumerate(Action<T> onAdded, Action<T> onRemoved) => m_set.UnsubscribeAndEnumerate(onAdded, onRemoved);
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
