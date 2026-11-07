@@ -84,8 +84,8 @@ namespace SeweralIdeas.UnityUtils.Editor
                     
                     using (ListPool< (string, Object)>.Get(out var elements))
                     {
-                        FindAssets(assetPath, autoAssetByNameLookup.GetElementType(), autoAssetByNameLookup.Mode, elements);
-                        elements.Sort((a, b) => string.Compare(a.Item1, b.Item1, StringComparison.OrdinalIgnoreCase));
+                        FindAssets(assetPath, autoAssetByNameLookup.GetElementType(), autoAssetByNameLookup.Mode, autoAssetByNameLookup.Filter, elements);
+                        elements.Sort(autoAssetByNameLookup);
                         
                         using var so = new SerializedObject(autoList);
                         
@@ -107,12 +107,12 @@ namespace SeweralIdeas.UnityUtils.Editor
         }
 
 
-        private static void FindAssets(string assetPath, Type elementType, IAutoFindAssets.SearchMode searchMode, List<(string, Object)> results)
+        private static void FindAssets(string assetPath, Type elementType, IAutoFindAssets.SearchMode searchMode, Predicate<(string, Object)> filter, List<(string guid, Object asset)> results)
         {
             if (searchMode == IAutoFindAssets.SearchMode.None || elementType == null)
                 return;
 
-            string filter = $"t:{elementType.Name}";
+            string searchFilter = $"t:{elementType.Name}";
             List<string> searchFolders = new();
 
             string folderPath = null;
@@ -132,7 +132,7 @@ namespace SeweralIdeas.UnityUtils.Editor
                     break; // null searchFolders searches whole project
             }
 
-            var guids = AssetDatabase.FindAssets(filter, searchMode == IAutoFindAssets.SearchMode.Project ? null : searchFolders.ToArray());
+            var guids = AssetDatabase.FindAssets(searchFilter, searchMode == IAutoFindAssets.SearchMode.Project ? null : searchFolders.ToArray());
 
             foreach (var guid in guids)
             {
@@ -149,8 +149,12 @@ namespace SeweralIdeas.UnityUtils.Editor
                 }
 
                 var obj = AssetDatabase.LoadAssetAtPath(path, elementType);
-                if (obj != null)
-                    results.Add((guid, obj));
+                if(obj == null)
+                    continue;
+                if(!filter((guid, obj)))
+                    continue;
+                
+                results.Add((guid, obj));
             }
         }
     }
