@@ -125,15 +125,22 @@ namespace SeweralIdeas.UnityUtils
             }
         }
         
-        public static void Then(this Awaitable awaitable, Action action)
+        /// <summary>
+        /// Runs <paramref name="action"/> when the awaitable is done, in the background (an exception is logged).
+        /// With a <paramref name="ct"/>, the action is dropped if it was canceled by the time the awaitable resumed: an awaitable that
+        /// completed in the same frame as the cancellation still resumes normally, so its own token is not enough to keep the action
+        /// from running on things that are gone.
+        /// </summary>
+        public static void Then(this Awaitable awaitable, Action action, CancellationToken ct = default)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            ThenAsync(awaitable, action).ForgetSafe();
-            
-            async static Awaitable ThenAsync(Awaitable when, Action what)
+            ThenAsync(awaitable, action, ct).ForgetSafe();
+
+            async static Awaitable ThenAsync(Awaitable when, Action what, CancellationToken token)
             {
                 await when;
+                token.ThrowIfCancellationRequested();
                 what();
             }
         }
