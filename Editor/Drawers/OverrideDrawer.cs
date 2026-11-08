@@ -37,10 +37,19 @@ namespace SeweralIdeas.UnityUtils.Drawers.Editor
 
             int indent = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;
-            enabledProp.boolValue = EditorGUI.Toggle(toggleRect, enabledProp.boolValue);
+
+            // With several objects selected, the value is only written when the toggle is clicked (writing the first object's value
+            // on every event would overwrite the others), and objects that differ are shown as mixed
+            EditorGUI.showMixedValue = enabledProp.hasMultipleDifferentValues;
+            EditorGUI.BeginChangeCheck();
+            bool enabled = EditorGUI.Toggle(toggleRect, enabledProp.boolValue);
+            if (EditorGUI.EndChangeCheck())
+                enabledProp.boolValue = enabled;
+            EditorGUI.showMixedValue = false;
             EditorGUI.indentLevel = indent;
 
-            using (new EditorGUI.DisabledScope(!enabledProp.boolValue))
+            // A mixed selection is not greyed out: some of the objects do have the override
+            using (new EditorGUI.DisabledScope(!enabledProp.boolValue && !enabledProp.hasMultipleDifferentValues))
                 drawValue(valueRect, valueProp);
 
             EditorGUI.EndProperty();
