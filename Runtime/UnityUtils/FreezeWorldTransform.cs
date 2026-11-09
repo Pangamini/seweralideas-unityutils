@@ -2,7 +2,7 @@ using SeweralIdeas.UnityUtils.Drawers;
 using SeweralIdeas.Utils;
 using UnityEngine;
 
-namespace Rockwell.Framework
+namespace SeweralIdeas.UnityUtils
 {
     public class FreezeWorldTransform : MonoBehaviour
     {
