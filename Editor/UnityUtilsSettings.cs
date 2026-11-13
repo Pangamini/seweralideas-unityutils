@@ -96,6 +96,28 @@ namespace SeweralIdeas.UnityUtils.Editor
 
         public static bool IsAutoAssetByNameLookupEnabled => instance.AutoAssetByNameLookupEnabled;
 
+        [SerializeField]
+        [Tooltip("Shows an editable comment under the header of the Inspector of any asset, and marks commented " +
+                 "assets in the Project window. The comments are kept in ProjectSettings/AssetComments.asset, " +
+                 "not in the assets.")]
+        private bool _assetCommentsEnabled; // disabled by default
+
+        /// <summary>
+        /// Shows the AssetComments GUI (Inspector comment, Project window marker). The comments themselves
+        /// stay in the project and the code API works either way.
+        /// </summary>
+        public bool AssetCommentsEnabled
+        {
+            get => _assetCommentsEnabled;
+            set
+            {
+                _assetCommentsEnabled = value;
+                Save();
+            }
+        }
+
+        public static bool IsAssetCommentsEnabled => instance.AssetCommentsEnabled;
+
         public void Save() => Save(true);
     }
 }

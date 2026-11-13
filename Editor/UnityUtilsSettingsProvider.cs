@@ -62,6 +62,15 @@ namespace SeweralIdeas.UnityUtils.Editor
                     "Keeps every AutoAssetByNameLookup<T> asset's list in sync automatically on asset import. " +
                     "Enabled by default."));
 
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Inspector / Project Window", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(
+                _serializedSettings.FindProperty("_assetCommentsEnabled"),
+                new GUIContent("Enable Asset Comments",
+                    "Shows an editable comment under the header of the Inspector of any asset, and marks " +
+                    "commented assets in the Project window. The comments are kept in " +
+                    "ProjectSettings/AssetComments.asset, not in the assets. Disabled by default."));
+
             if (EditorGUI.EndChangeCheck())
             {
                 _serializedSettings.ApplyModifiedProperties();
