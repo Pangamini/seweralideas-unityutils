@@ -47,6 +47,9 @@ namespace SeweralIdeas.ObjectPooling
         internal bool IsAwake => _awake;
 
         private CancellationTokenSource? _spawnCts;
+        private int                      _spawnGeneration;
+
+        public int SpawnGeneration => _spawnGeneration;
 
         /// <summary>Whether the object is in its life: spawned, and not despawned yet (it may be waiting for the end of the frame to be).</summary>
         public bool Spawned => _spawned;
@@ -110,7 +113,10 @@ namespace SeweralIdeas.ObjectPooling
             if(_spawned)
                 RunDespawn();
             else
+            {
+                IncrementGeneration();
                 CancelSpawnToken(); // a token asked for before the spawn, for a life that never came
+            }
             OnDestroyed();
         }
         #endregion
@@ -141,6 +147,7 @@ namespace SeweralIdeas.ObjectPooling
                 return;
             }
 
+            IncrementGeneration();
             _spawnRequested = true;
 
             // Awake and OnEnable of every component happen inside SetActive; OnSpawn waits until they are all done.
@@ -285,7 +292,7 @@ namespace SeweralIdeas.ObjectPooling
         private void RunDespawn()
         {
             _spawned = false;
-
+            IncrementGeneration();
             CancelSpawnToken();
 
             // Parts last to first, then the root. One that throws doesn't keep the others from being despawned.
@@ -299,6 +306,14 @@ namespace SeweralIdeas.ObjectPooling
             catch (Exception e) { Debug.LogException(e, this); }
 
             InvokeDespawned();
+        }
+        private void IncrementGeneration()
+        {
+
+            unchecked
+            {
+                _spawnGeneration++;
+            }
         }
 
         private void CancelSpawnToken()
