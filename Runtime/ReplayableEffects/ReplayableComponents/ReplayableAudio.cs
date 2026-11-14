@@ -84,35 +84,35 @@ namespace SeweralIdeas.ReplayableEffects
             if ( !gameObject.activeInHierarchy )
                 return;
             
-            AudioClip clip;
-            float pitch;
-            
+            // With a collection, a clip and a pitch are picked for the source. Without one, the source is left as it is:
+            // its resource may be an AudioRandomContainer, which has no clip (reading `clip` gives null, and writing it back would clear the resource).
+            AudioClip clip = null;
             if (m_clipCollection != null)
             {
-                pitch = m_clipCollection.PickRandomPitch();
+                m_audioSource.pitch = m_clipCollection.PickRandomPitch();
                 clip = m_clipCollection.PickRandom();
+                m_audioSource.clip = clip;
             }
             else
             {
-                pitch = m_audioSource.pitch;
                 clip = m_audioSource.clip;
             }
 
-            m_audioSource.clip = clip;
             m_audioSource.loop = m_loop;
-            
+
             if ( m_loop )
             {
                 m_progress = 0;
                 enabled = true;
             }
 
-            m_audioSource.pitch = pitch;
-            if ( m_playAsNew && !m_loop)         
+            // PlayOneShot needs a clip; a source with a container resource can only Play().
+            if ( m_playAsNew && !m_loop && clip != null )
                 m_audioSource.PlayOneShot(clip);
             else
                 m_audioSource.Play();
         }
+
 
         protected void Update()
         {
@@ -145,13 +145,13 @@ namespace SeweralIdeas.ReplayableEffects
                     m_audioSource.clip = m_clipCollection.PickRandom();
                 }
             }
-            
+
             float newTime = m_audioSource.time + deltaTime;
             if ( newTime >= m_duration)
             {
                 m_audioSource.Stop();
             }
-            else
+            else if ( m_audioSource.clip != null ) // no clip when the source plays an AudioRandomContainer
             {
                 m_audioSource.time = Mathf.Repeat( newTime, m_audioSource.clip.length);
             }
