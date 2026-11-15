@@ -116,15 +116,16 @@ namespace SeweralIdeas.UnityUtils.Curves.Editor
         }
         private static void DrawCurve(SerializedProperty property, CurveAttribute curveAttribute, Rect curveRect)
         {
-            if(Event.current.type != EventType.Repaint)
-                return;
-            
+            // CurveGUI allocates control IDs, so it must run on every event type.
+            bool repaint = Event.current.type == EventType.Repaint;
+
             using (ListPool<IRealCurve>.Get(out var curves))
             using (ListPool<float>.Get(out var currentValues))
             {
-                EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, curves);
+                if(repaint)
+                    EditorReflectionUtility.GetVariable(property.propertyPath, property.serializedObject.targetObjects, curves);
 
-                if(!string.IsNullOrEmpty(curveAttribute.displayValue))
+                if(repaint && !string.IsNullOrEmpty(curveAttribute.displayValue))
                 {
                     string displayValuePath = GetParentFieldPath(property.propertyPath, curveAttribute.displayValue);
                     EditorReflectionUtility.GetVariable(displayValuePath, property.serializedObject.targetObjects, currentValues);
