@@ -19,7 +19,6 @@ namespace SeweralIdeas.UnityUtils.Editor
         private static GUIContent? s_icon;
         private static GUIStyle? s_textStyle;
         private static GUIStyle? s_hintStyle;
-        private static string? s_lastKey;
         private static string? s_editingKey; // the object whose empty comment is being written
         private static bool s_focusSeen;     // the field got the keyboard focus since it was opened
 
@@ -27,6 +26,16 @@ namespace SeweralIdeas.UnityUtils.Editor
         {
             UnityEditor.Editor.finishedDefaultHeaderGUI += OnHeaderGui;
             EditorApplication.projectWindowItemOnGUI += OnProjectItemGui;
+            Selection.selectionChanged += OnSelectionChanged;
+        }
+
+        // A text field being edited keeps its own copy of the text, tied to its control id, which another object's
+        // field can get: let go of it when the selection changes. Only if it is one of ours that has the focus.
+        private static void OnSelectionChanged()
+        {
+            s_editingKey = null;
+            if (GUI.GetNameOfFocusedControl().StartsWith(ControlName, System.StringComparison.Ordinal))
+                GUIUtility.keyboardControl = 0;
         }
 
         private static void OnHeaderGui(UnityEditor.Editor editor)
@@ -43,13 +52,8 @@ namespace SeweralIdeas.UnityUtils.Editor
             s_textStyle.normal.textColor = EditorGUIUtility.isProSkin ? ColorPro : ColorFree;
             s_hintStyle ??= new GUIStyle(s_textStyle) { fontStyle = FontStyle.Italic, fontSize = 10 };
 
-            // a text field being edited keeps its own copy of the text: drop that when another object is shown
-            if (key != s_lastKey)
-            {
-                s_lastKey = key;
-                s_editingKey = null;
-                GUIUtility.keyboardControl = 0;
-            }
+            // One name per object: an Inspector draws this for every component header, and they must not share one.
+            string controlName = ControlName + key;
 
             string text = AssetComments.Get(key);
 
@@ -74,19 +78,29 @@ namespace SeweralIdeas.UnityUtils.Editor
             }
 
             EditorGUI.BeginChangeCheck();
-            GUI.SetNextControlName(ControlName);
-            string edited = EditorGUILayout.TextArea(text, s_textStyle, GUILayout.MinHeight(EditorGUIUtility.singleLineHeight));
+            GUI.SetNextControlName(controlName);
+
+            float wrapWidth = EditorGUIUtility.currentViewWidth - 30f;
+            float height = Mathf.Max(EditorGUIUtility.singleLineHeight, s_textStyle.CalcHeight(new GUIContent(text.EndsWith('\n') ? text + " " : text), wrapWidth)); // a trailing line break is a line too
+            Rect textRect = GUILayoutUtility.GetRect(0f, height, s_textStyle, GUILayout.ExpandWidth(true), GUILayout.Height(height));
+            string edited = EditorGUI.TextArea(textRect, text, s_textStyle);
             if (EditorGUI.EndChangeCheck())
                 AssetComments.Set(key, edited);
 
-            if (s_editingKey == key)
+            if (s_editingKey == key && Event.current.type == EventType.Repaint)
             {
-                if (GUI.GetNameOfFocusedControl() == ControlName)
+                if (GUI.GetNameOfFocusedControl() == controlName)
                     s_focusSeen = true;
                 else if (!s_focusSeen)
-                    EditorGUI.FocusTextInControl(ControlName); // the click that opened the field
+                {
+                    EditorGUI.FocusTextInControl(controlName); // the click that opened the field
+                    editor.Repaint();
+                }
                 else if (edited.Length == 0)
+                {
                     s_editingKey = null; // left it empty: collapse again
+                    editor.Repaint();
+                }
             }
 
             // keep the text clear of the divider drawn under the header
