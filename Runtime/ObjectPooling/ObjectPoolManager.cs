@@ -45,8 +45,13 @@ namespace SeweralIdeas.ObjectPooling
                 return;
 
             // An index loop: releasing something can queue more, which then go in this same round.
+            // One that throws is logged and doesn't keep the rest from being released, nor the list from being cleared:
+            // it would be released again every frame.
             for( int i = 0; i < _delayedReleases.Count; ++i )
-                _delayedReleases[i].ReleaseNow();
+            {
+                try { _delayedReleases[i].ReleaseNow(); }
+                catch (System.Exception e) { Debug.LogException(e); }
+            }
             _delayedReleases.Clear();
         }
 

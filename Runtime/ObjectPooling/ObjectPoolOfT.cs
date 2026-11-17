@@ -249,7 +249,7 @@ namespace SeweralIdeas.ObjectPooling
         // would have, instantiated as a root object. It is left inactive and under the stage, for the caller to move.
         private void EnsureAwake(Spawnable root)
         {
-            if(root.IsAwake)
+            if(root.didAwake)
                 return;
 
             root.transform.SetParent(ObjectPoolManager.GetInstance(gameObject.scene).Stage);

@@ -34,7 +34,6 @@ namespace SeweralIdeas.ObjectPooling
     {
         private readonly List<SpawnablePart> _parts = new();
 
-        private bool _awake;
         private bool _spawnRequested; // Spawn() was called: the life has begun
         private bool _spawned;         // ... and OnSpawn has been run, which waits for the Awake
         private bool _despawnQueued;
@@ -43,8 +42,19 @@ namespace SeweralIdeas.ObjectPooling
         // the sink, set by the pool that hands the object out
         private ObjectPool? _pool;
         internal Component? PoolHandle { get; private set; }
-        internal bool InPool { get; set; }
-        internal bool IsAwake => _awake;
+        private bool _inPool;
+        private bool _lifeOver; // RunDespawn has begun: the life is over until the object is taken out of its pool again
+
+        internal bool InPool
+        {
+            get => _inPool;
+            set
+            {
+                _inPool = value;
+                if(!value)
+                    _lifeOver = false; // taken out: the coming life
+            }
+        }
 
         private CancellationTokenSource? _spawnCts;
         private int                      _spawnGeneration;
@@ -71,18 +81,27 @@ namespace SeweralIdeas.ObjectPooling
 
         /// <summary>
         /// A token cancelled when the life ends (and when the object is destroyed), for async work that must not outlive
-        /// it. A new one for every life, made when first asked for, and disposed when the life ends. Asked for before the
-        /// object is spawned, it is for the coming life, as <see cref="AwaitDespawnAsync"/> is. Once the life is over - the
-        /// object is in its pool, or destroyed - it is a token that is already cancelled, so it works the same whether the
-        /// object is pooled or not.
+        /// it. An object that is not pooled ends its life by being destroyed, so for it this is its destroyCancellationToken.
+        /// For a pooled one it is a new token for every life, made when first asked for, and disposed when the life ends.
+        /// Asked for after Awake but before the object is spawned, it is for the coming life, as <see cref="AwaitDespawnAsync"/>
+        /// is. Once the life is over - the despawn has begun, the object is in its pool, or destroyed - it is a token that
+        /// is already cancelled, so it works the same whether the object is pooled or not.
+        /// A pooled object that has not woken up yet throws: Unity doesn't call OnDestroy on such an object, so nothing
+        /// could cancel the token if it were destroyed.
         /// </summary>
         public CancellationToken SpawnCancellationToken
         {
             get
             {
-                if(!this || InPool)
+                if(!this)
                     return new CancellationToken(true);
-                _spawnCts ??= CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+                if(_pool == null)
+                    return destroyCancellationToken;
+                if(InPool || _lifeOver)
+                    return new CancellationToken(true);
+                if(!didAwake)
+                    throw new InvalidOperationException($"{name}: SpawnCancellationToken requested before Awake.");
+                _spawnCts ??= new CancellationTokenSource();
                 return _spawnCts.Token;
             }
         }
@@ -90,7 +109,6 @@ namespace SeweralIdeas.ObjectPooling
         #region Unity messages
         protected void Awake()
         {
-            _awake = true;
             OnAwake();
 
             // Spawn() may have come before the object could wake up (an inactive parent). If it is Spawn() that is
@@ -115,7 +133,7 @@ namespace SeweralIdeas.ObjectPooling
             else
             {
                 IncrementGeneration();
-                CancelSpawnToken(); // a token asked for before the spawn, for a life that never came
+                CancelSpawnToken(); // a token asked for after Awake but before the spawn, for a life that never came
             }
             OnDestroyed();
         }
@@ -222,7 +240,7 @@ namespace SeweralIdeas.ObjectPooling
         /// waits for a coming life), otherwise when it is destroyed. Completes at once for a destroyed target; throws
         /// OperationCanceledException if <paramref name="ct"/> is cancelled first.
         /// </summary>
-        public static async ValueTask AwaitLifeEndAsync(MonoBehaviour target, CancellationToken ct = default)
+        public async static ValueTask AwaitLifeEndAsync(MonoBehaviour target, CancellationToken ct = default)
         {
             if(!target)
                 return;
@@ -239,6 +257,9 @@ namespace SeweralIdeas.ObjectPooling
         private void DespawnNow()
         {
             _despawnQueued = false; // whatever happens next, this request is over
+
+            if(!this) // destroyed in the meantime: OnDestroy has despawned it, and there is nothing to return or destroy
+                return;
 
             if(InPool) // not if it was despawned some other way in the meantime
                 return;
@@ -274,7 +295,7 @@ namespace SeweralIdeas.ObjectPooling
         // Runs OnSpawn once the life has begun and the object has woken up, if it hasn't been run yet.
         private void TryRunSpawn()
         {
-            if(!_spawnRequested || _spawned || !_awake)
+            if(!_spawnRequested || _spawned || !didAwake)
                 return;
 
             _spawned = true;
@@ -292,6 +313,7 @@ namespace SeweralIdeas.ObjectPooling
         private void RunDespawn()
         {
             _spawned = false;
+            _lifeOver = true; // a token asked for from here on (in OnDespawn, say) is for a life that is over
             IncrementGeneration();
             CancelSpawnToken();
 
@@ -335,8 +357,7 @@ namespace SeweralIdeas.ObjectPooling
             }
             finally
             {
-                // A linked source keeps a registration on destroyCancellationToken until it is disposed, and a pooled
-                // object would pile up one per life. Tokens handed out before stay cancelled.
+                // Tokens handed out before stay cancelled.
                 cts.Dispose();
             }
         }

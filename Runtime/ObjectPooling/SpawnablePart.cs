@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Threading;
 using UnityEngine;
 
 namespace SeweralIdeas.ObjectPooling
@@ -19,6 +20,13 @@ namespace SeweralIdeas.ObjectPooling
 
         /// <summary>The nearest <see cref="Spawnable"/> at or above the part, or null if there is none and the part spawns itself.</summary>
         public Spawnable? Root => _root;
+
+        /// <summary>
+        /// The end of the part's life as a token: the <see cref="Spawnable.SpawnCancellationToken"/> of its root, which is new
+        /// for each life of a pooled object, or, for a part that is its own root, its destroyCancellationToken. Unlike
+        /// <see cref="Spawnable.GetLifeToken"/>, it finds a root that is above the part and not on its own object.
+        /// </summary>
+        public CancellationToken LifeToken => _root != null ? _root.SpawnCancellationToken : destroyCancellationToken;
 
         /// <summary>Whether the part is spawned, i.e. its root is and it has been told so.</summary>
         public bool Spawned => _spawned;
