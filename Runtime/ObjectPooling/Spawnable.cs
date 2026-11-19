@@ -17,8 +17,8 @@ namespace SeweralIdeas.ObjectPooling
     ///    <see cref="OnSpawn"/>, on the root first and then on its <see cref="SpawnablePart"/>s. A pooled instance is handed
     ///    out already spawned, or, with <c>Take(active: false)</c>, to be set up and spawned by the caller. An object that
     ///    nobody spawned and that isn't pooled spawns itself on its first Start (placed in a scene, or just instantiated).
-    ///  - <see cref="Despawn"/> ends it, at the end of the frame, as <see cref="UnityEngine.Object.Destroy(UnityEngine.Object)"/>
-    ///    does, so whoever is still working with the object this frame finds it intact. <see cref="OnDespawn"/> runs on the
+    ///  - <see cref="Despawn"/> ends it, at the end of the frame (or at the start of the next physics step, see <see cref="DespawnTiming"/>), as <see cref="UnityEngine.Object.Destroy(UnityEngine.Object)"/>
+    ///    does at the end of the frame, so whoever is still working with the object meanwhile finds it intact. <see cref="OnDespawn"/> runs on the
     ///    parts (last first) and then on the root. Destroying a spawned object despawns it too.
     ///
     /// Spawning does not depend on the object being active: a spawned object can be deactivated, hidden under an inactive
@@ -30,7 +30,7 @@ namespace SeweralIdeas.ObjectPooling
     /// </summary>
     [DisallowMultipleComponent]
     [SelectionBase]
-    public class Spawnable : MonoBehaviour, IDelayedRelease
+    public class Spawnable : MonoBehaviour
     {
         private readonly List<SpawnablePart> _parts = new();
 
@@ -61,10 +61,10 @@ namespace SeweralIdeas.ObjectPooling
 
         public int SpawnGeneration => _spawnGeneration;
 
-        /// <summary>Whether the object is in its life: spawned, and not despawned yet (it may be waiting for the end of the frame to be).</summary>
+        /// <summary>Whether the object is in its life: spawned, and not despawned yet (it may be waiting for the end of the frame, or for the next physics step, to be).</summary>
         public bool Spawned => _spawned;
 
-        /// <summary>Whether <see cref="Despawn"/> has been called and the end of the frame, when it takes effect, is yet to come.</summary>
+        /// <summary>Whether <see cref="Despawn"/> has been called and the moment when it takes effect (see <see cref="DespawnTiming"/>) is yet to come.</summary>
         public bool IsDespawning => _despawnQueued;
 
         /// <summary>Whether the object goes back to a pool when it is despawned (and not to the bin).</summary>
@@ -183,7 +183,7 @@ namespace SeweralIdeas.ObjectPooling
         }
 
         /// <summary>
-        /// Ends the life of the object at the end of the frame: it is despawned, and then returned to its pool, or
+        /// Ends the life of the object at the end of the frame, or at the start of the next physics step (see <see cref="DespawnTiming"/>): it is despawned, and then returned to its pool, or
         /// destroyed if it has none. Calling it again before then does nothing.
         /// </summary>
         public void Despawn()
@@ -192,7 +192,7 @@ namespace SeweralIdeas.ObjectPooling
                 return;
 
             _despawnQueued = true;
-            ObjectPoolManager.GetInstance(gameObject.scene).ReleaseAtEndOfFrame(this);
+            ObjectPoolManager.GetInstance(gameObject.scene).ReleaseDelayed(this);
         }
 
         /// <summary>
@@ -251,10 +251,18 @@ namespace SeweralIdeas.ObjectPooling
                 await target.AwaitDestructionAsync(ct);
         }
 
-        void IDelayedRelease.ReleaseNow() => DespawnNow();
+        /// <summary>
+        /// When <see cref="Despawn"/> takes effect: at the end of the frame, as destroying an object does (the default, for what is
+        /// only shown), or at the start of the next physics step, for what takes part in the simulation. A frame may hold no step or
+        /// several, so an object that was despawned in a step and released at the end of the frame stays in the world for one more
+        /// step or not, depending on when the frames fell. A class that is part of the simulation overrides this with
+        /// <see cref="ReleaseTiming.NextStep"/>; it is read when <see cref="Despawn"/> is called.
+        /// </summary>
+        protected internal virtual ReleaseTiming DespawnTiming => ReleaseTiming.EndOfFrame;
 
-        // Ends the life on the spot. For the end of the frame, which is when Despawn takes effect.
-        private void DespawnNow()
+
+        // Ends the life on the spot. For when Despawn takes effect (see DespawnTiming); the manager calls it.
+        internal void DespawnNow()
         {
             _despawnQueued = false; // whatever happens next, this request is over
 
